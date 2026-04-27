@@ -298,7 +298,19 @@
             socket.emit('deletePlayer', id);
         }
     }
-    function placeBid(inc) { socket.emit('placeBid', { teamName: currentUser.team, increment: inc }); }
+    function placeBid(increment) {
+        // 1. Check if logged in
+        if (!currentUser) {
+            return alert("⚠️ You must be logged in to bid!");
+        }
+        // 2. Check if captain
+        if (currentUser.role !== 'captain') {
+            return alert("⚠️ Only Team Captains can place bids!");
+        }
+        
+        // 3. Send bid to server
+        socket.emit('placeBid', { teamName: currentUser.team, increment: increment });
+    }
     function sellPlayer() { socket.emit('sellPlayer'); }
     function cancelAuction() { socket.emit('cancelAuction'); }
 
