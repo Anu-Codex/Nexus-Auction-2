@@ -106,7 +106,12 @@
                 <thead>
                     <tr><th>Name</th><th>Strength</th><th>Card Type</th><th>Base Value</th><th>Status</th><th>Sold To</th><th class="admin-only hidden">Action</th></tr>
                 </thead>
-                <tbody id="playerTableBody"></tbody>
+                <tbody id="teamTableBody">
+    <tr><td colspan="2" style="text-align:center; color: var(--warning);">Connecting to database...</td></tr>
+                </tbody>
+                <tbody id="playerTableBody">
+    <tr><td colspan="7" style="text-align:center; color: var(--warning);">Waking up server... (This takes ~30 seconds on the first visit)</td></tr>
+                </tbody>
             </table>
         </div>
     </div>
@@ -156,16 +161,19 @@
         document.getElementById('newPValue').value = cardVals[document.getElementById('newPCard').value] || 10;
     }
 
-    // Fetch initial data from Render Backend
-    fetch(`${BACKEND_URL}/api/data`)
-        .then(res => res.json())
-        .then(data => {
-            localPlayers = data.players;
-            renderPlayers(data.players);
-            renderTeams(data.teams);
-            renderLiveAuction(data.state);
-            checkAuthUI();
-        }).catch(err => console.error("Could not load backend data. Is Render awake?"));
+    // Automatically receive data as soon as the server wakes up and connects
+    socket.on('initialData', (data) => {
+        localPlayers = data.players;
+        renderPlayers(data.players);
+        renderTeams(data.teams);
+        renderLiveAuction(data.state);
+        checkAuthUI();
+    });
+
+    // If the server disconnects, show the loading message again
+    socket.on('disconnect', () => {
+        document.getElementById('playerTableBody').innerHTML = `<tr><td colspan="7" style="text-align:center; color: var(--danger);">Lost connection to server. Reconnecting...</td></tr>`;
+    });
 
     // Real-time Listeners
     socket.on('updatePlayers', (p) => { localPlayers = p; renderPlayers(p); });
