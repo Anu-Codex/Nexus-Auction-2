@@ -180,7 +180,10 @@
     socket.on('updatePlayers', (p) => { localPlayers = p; renderPlayers(p); });
     socket.on('updateTeams', (t) => renderTeams(t));
     socket.on('updateAuction', (s) => renderLiveAuction(s));
-    socket.on('errorMsg', (msg) => alert("⚠️ " + msg));
+    // CATCH AND DISPLAY ERRORS FROM BACKEND
+    socket.on('errorMsg', (message) => {
+        alert("⚠️ AUCTION ERROR: " + message);
+    });
 
     function renderPlayers(players) {
         const tbody = document.getElementById('playerTableBody');
