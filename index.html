@@ -88,11 +88,9 @@
                 <input type="text" id="newPName" placeholder="Player Name" required>
                 <input type="number" id="newPStrength" placeholder="Strength" required>
                 <select id="newPCard" onchange="autoFillBaseValue()">
-                    <option value="Standard">Standard (10L)</option>
-                    <option value="POTW">POTW (20L)</option>
-                    <option value="Show Time">Show Time (30L)</option>
-                    <option value="Big Time">Big Time (40L)</option>
-                    <option value="Epic">Epic (50L)</option>
+                    <option value="Standard">Standard (1L)</option>
+                    <option value="Show Time">Show Time (3L)</option>
+                    <option value="Epic">Epic (5L)</option>
                 </select>
                 <input type="number" id="newPValue" value="10" placeholder="Base Value (Lakhs)" required>
                 <button id="addBtn" onclick="addPlayer()">Add Player</button>
@@ -121,8 +119,8 @@
         <div class="modal-content">
             <h2>Secure Login</h2>
             <p style="font-size: 12px; margin-bottom: 15px; color: var(--warning);">
-                Admin: admin@nexus.com / admin123<br>
-                Captains: team1@nexus.com | team2 | team3 / cap123
+                Admin: Anubhav Sarkar<br>
+                Captains: Abhishek | Avirup | Rohit | Sukdeb | Sanju 
             </p>
             <input type="email" id="email" placeholder="Email Address">
             <input type="password" id="password" placeholder="Password">
@@ -142,9 +140,12 @@
 
     const users = {
         "admin@nexus.com": { password: "admin123", role: "admin", team: "Admin" },
-        "team1@nexus.com": { password: "cap123", role: "captain", team: "FC Strikers" },
-        "team2@nexus.com": { password: "cap123", role: "captain", team: "United PES" },
-        "team3@nexus.com": { password: "cap123", role: "captain", team: "Galacticos" }
+        "abhisek@nexus.com": { password: "abhisek123", role: "captain", team: "RISING FALCONS" },
+        "sukdeb@nexus.com": { password: "sukdeb123", role: "captain", team: "Team NRG" },
+        "avirup@nexus.com": { password: "avirup123", role: "captain", team: "Team SHAKTI" },
+        "sanju@nexus.com": { password: "sanju123", role: "captain", team: "Golden Knights FC" },
+        "rohit@nexus.com": { password: "rohit123", role: "captain", team: "Team SHAKTI" },
+        "avirup@nexus.com": { password: "avirup123", role: "captain", team: "Team SHAKTI" }
     };
     
     let currentUser = JSON.parse(sessionStorage.getItem('nexus_user')) || null;
