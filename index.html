@@ -310,20 +310,21 @@
             socket.emit('deletePlayer', id);
         }
     }
-    // ADD BONUS BUDGET TO TEAMS
+    // ADD BONUS BUDGET TO TEAMS (Crash-Proof Version)
     function addBonusBudget() {
-        const amount = document.getElementById('extraBudgetAmt').value;
+        // Force the input to be parsed strictly as a Number, preventing weird text/string math
+        const amount = Number(document.getElementById('extraBudgetAmt').value);
         
-        if (!amount || amount <= 0) {
-            return alert("⚠️ Please enter a valid number greater than 0.");
+        // Prevent massive numbers from being injected accidentally
+        if (!amount || amount <= 0 || amount > 1000) {
+            return alert("⚠️ Invalid amount! Please enter a realistic number (e.g., 50).");
         }
 
-        // Ask for confirmation so Admin doesn't do it by accident!
-        if (confirm(`Are you sure you want to permanently inject ${amount} Lakhs into EVERY team's purse?`)) {
+        if (confirm(`Are you sure you want to add ${amount} Lakhs into EVERY team's purse?`)) {
             socket.emit('addExtraBudget', amount);
-            document.getElementById('extraBudgetAmt').value = ''; // clear input
+            document.getElementById('extraBudgetAmt').value = ''; 
         }
-    }
+            }
     function placeBid(increment) {
         // 1. Check if logged in
         if (!currentUser) {
