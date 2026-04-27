@@ -120,7 +120,7 @@
             <h2>Secure Login</h2>
             <p style="font-size: 12px; margin-bottom: 15px; color: var(--warning);">
                 Admin: Anubhav Sarkar<br>
-                Captains: Abhishek | Avirup | Rohit | Sukdeb | Sanju 
+                Captains: Abhishek | Avirup | Trirup | Sukdeb | Sanju | Gourav
             </p>
             <input type="email" id="email" placeholder="Email Address">
             <input type="password" id="password" placeholder="Password">
@@ -144,8 +144,8 @@
         "sukdeb@nexus.com": { password: "sukdeb123", role: "captain", team: "Team NRG" },
         "avirup@nexus.com": { password: "avirup123", role: "captain", team: "Team SHAKTI" },
         "sanju@nexus.com": { password: "sanju123", role: "captain", team: "Golden Knights FC" },
-        "rohit@nexus.com": { password: "rohit123", role: "captain", team: "Team SHAKTI" },
-        "avirup@nexus.com": { password: "avirup123", role: "captain", team: "Team SHAKTI" }
+        "trirup@nexus.com": { password: "trirup123", role: "captain", team: "Dominators" },
+        "gourav@nexus.com": { password: "gourav123", role: "captain", team: "Team SHAKTI" }
     };
     
     let currentUser = JSON.parse(sessionStorage.getItem('nexus_user')) || null;
@@ -158,7 +158,7 @@
     }
 
     function autoFillBaseValue() {
-        const cardVals = { "Standard": 10, "POTW": 20, "Show Time": 30, "Big Time": 40, "Epic": 50 };
+        const cardVals = { "Standard": 1, "Show Time": 3, "Epic": 5 };
         document.getElementById('newPValue').value = cardVals[document.getElementById('newPCard').value] || 10;
     }
 
