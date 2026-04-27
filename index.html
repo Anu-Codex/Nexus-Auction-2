@@ -310,12 +310,15 @@
             socket.emit('deletePlayer', id);
         }
     }
-    // ADD BONUS BUDGET TO TEAMS (Crash-Proof Version)
+    // ADD BONUS BUDGET TO TEAMS (Admin Only & Crash-Proof)
     function addBonusBudget() {
-        // Force the input to be parsed strictly as a Number, preventing weird text/string math
+        // SECURITY CHECK: Stop anyone who isn't the admin!
+        if (!currentUser || currentUser.role !== 'admin') {
+            return alert("⚠️ Unauthorized: Only the Admin can manage purses!");
+        }
+
         const amount = Number(document.getElementById('extraBudgetAmt').value);
         
-        // Prevent massive numbers from being injected accidentally
         if (!amount || amount <= 0 || amount > 1000) {
             return alert("⚠️ Invalid amount! Please enter a realistic number (e.g., 50).");
         }
@@ -324,7 +327,7 @@
             socket.emit('addExtraBudget', amount);
             document.getElementById('extraBudgetAmt').value = ''; 
         }
-            }
+    }
     function placeBid(increment) {
         // 1. Check if logged in
         if (!currentUser) {
