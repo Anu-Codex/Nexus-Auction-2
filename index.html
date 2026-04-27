@@ -371,7 +371,13 @@
             document.getElementById('captainControls').classList.add('hidden');
             document.querySelectorAll('.admin-only').forEach(el => el.classList.add('hidden'));
         }
-    }
+
+        // SHOW PURSE MANAGEMENT ONLY FOR ADMIN:
+        const purseDiv = document.getElementById('purseManagementSection');
+        if (purseDiv) {
+            purseDiv.style.display = (currentUser && currentUser.role === 'admin') ? 'block' : 'none';
+        }
+        }
     function showLogin() { document.getElementById('loginModal').style.display = 'flex'; }
     function hideLogin() { document.getElementById('loginModal').style.display = 'none'; }
     function processLogin() {
