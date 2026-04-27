@@ -177,7 +177,14 @@
         const tbody = document.getElementById('playerTableBody');
         tbody.innerHTML = '';
         players.forEach(p => {
-            const adminBtn = p.status === 'Available' ? `<button onclick="startAuction('${p._id}', ${p.value})">Start Auction</button>` : '';
+            // Updated Admin Buttons: Adds a Delete (🗑️) button to every player
+            let adminBtn = '';
+            if (p.status === 'Available') {
+                adminBtn += `<button onclick="startAuction('${p._id}', ${p.value})">Start Auction</button>`;
+            }
+            // The red delete button
+            adminBtn += `<button style="background: var(--danger); margin-left: 5px;" onclick="deletePlayer('${p._id}', '${p.name}')">🗑️</button>`;
+
             tbody.innerHTML += `
                 <tr>
                     <td><strong>${p.name}</strong></td>
@@ -268,6 +275,16 @@
         document.getElementById('noAuctionActive').innerHTML = "<p style='color: var(--warning); font-size: 20px;'>Starting auction... please wait.</p>";
         
         socket.emit('startAuction', {playerId: id, baseValue: Number(val)}); 
+    }
+    function deletePlayer(id, playerName) {
+        if(id.startsWith("temp_")) {
+            return alert("Please wait a second for the player to save to the database before deleting.");
+        }
+        
+        // Ask for confirmation so Admin doesn't delete someone by accident!
+        if(confirm(`Are you sure you want to delete ${playerName}?`)) {
+            socket.emit('deletePlayer', id);
+        }
     }
     function placeBid(inc) { socket.emit('placeBid', { teamName: currentUser.team, increment: inc }); }
     function sellPlayer() { socket.emit('sellPlayer'); }
