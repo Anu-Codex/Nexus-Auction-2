@@ -96,6 +96,13 @@
                 <button id="addBtn" onclick="addPlayer()">Add Player</button>
             </div>
         </div>
+        <!-- PURSE MANAGEMENT -->
+    <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid var(--border);">
+        <h3 style="margin-bottom: 10px; color: var(--secondary);">💰 Purse Management</h3>
+        <input type="number" id="extraBudgetAmt" placeholder="Amount to add (e.g. 50)" required>
+        <button onclick="addBonusBudget()" style="background: #10b981;">Add Bonus to All Teams</button>
+        <p style="font-size: 12px; color: var(--text-muted); margin-top: 5px;">*This adds the amount to their current balance without affecting sold players.</p>
+    </div>
 
         <!-- PLAYER LIST -->
         <div class="panel">
