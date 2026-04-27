@@ -95,7 +95,7 @@
                     <option value="Epic">Epic (50L)</option>
                 </select>
                 <input type="number" id="newPValue" value="10" placeholder="Base Value (Lakhs)" required>
-                <button onclick="addPlayer()">Add</button>
+                <button id="addBtn" onclick="addPlayer()">Add Player</button>
             </div>
         </div>
 
@@ -218,15 +218,57 @@
 
     // Controls
     function addPlayer() {
+        const btn = document.getElementById('addBtn');
         const data = {
-            name: document.getElementById('newPName').value, strength: document.getElementById('newPStrength').value,
-            cardType: document.getElementById('newPCard').value, value: document.getElementById('newPValue').value
+            name: document.getElementById('newPName').value.trim(), 
+            strength: document.getElementById('newPStrength').value,
+            cardType: document.getElementById('newPCard').value, 
+            value: document.getElementById('newPValue').value,
+            status: "Available",
+            soldTo: "-"
         };
-        if(!data.name) return;
+        
+        // Prevent adding empty players
+        if(!data.name || !data.strength || !data.value) {
+            return alert("Please fill out all player fields!");
+        }
+
+        // 1. Instantly change button to show loading state
+        btn.innerText = "Adding...";
+        btn.disabled = true;
+        btn.style.background = "#64748b";
+
+        // 2. Optimistic UI: Add to screen INSTANTLY without waiting for network delay
+        data._id = "temp_" + Date.now(); 
+        localPlayers.push(data);
+        renderPlayers(localPlayers);
+
+        // 3. Send to database in the background
         socket.emit('addPlayer', data);
-        document.getElementById('newPName').value = ''; document.getElementById('newPStrength').value = '';
+        
+        // 4. Clear input boxes
+        document.getElementById('newPName').value = ''; 
+        document.getElementById('newPStrength').value = '';
+        
+        // 5. Reset button back to normal after a short delay
+        setTimeout(() => {
+            btn.innerText = "Add Player";
+            btn.disabled = false;
+            btn.style.background = "var(--primary)";
+        }, 800);
     }
-    function startAuction(id, val) { socket.emit('startAuction', {playerId: id, baseValue: val}); }
+
+    function startAuction(id, val) { 
+        // Safety lock: Prevent starting auction before DB finishes saving
+        if(id.startsWith("temp_")) {
+            return alert("Please wait a second for the player to save to the database before starting the auction.");
+        }
+        
+        // Show loading message on the dashboard while waiting for server
+        document.getElementById('noAuctionActive').innerHTML = "<p style='color: var(--warning); font-size: 20px;'>Starting auction... please wait.</p>";
+        
+        socket.emit('startAuction', {playerId: id, baseValue: Number(val)}); 
+    }
     function placeBid(inc) { socket.emit('placeBid', { teamName: currentUser.team, increment: inc }); }
     function sellPlayer() { socket.emit('sellPlayer'); }
     function cancelAuction() { socket.emit('cancelAuction'); }
