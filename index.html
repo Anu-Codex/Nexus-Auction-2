@@ -191,6 +191,11 @@
     socket.on('errorMsg', (message) => {
         alert("⚠️ AUCTION ERROR: " + message);
     });
+    // CATCH SUCCESS MESSAGES FROM BACKEND
+    socket.on('alertMsg', (message) => {
+        alert(message);
+    });
+    
 
     function renderPlayers(players) {
         const tbody = document.getElementById('playerTableBody');
@@ -303,6 +308,20 @@
         // Ask for confirmation so Admin doesn't delete someone by accident!
         if(confirm(`Are you sure you want to delete ${playerName}?`)) {
             socket.emit('deletePlayer', id);
+        }
+    }
+    // ADD BONUS BUDGET TO TEAMS
+    function addBonusBudget() {
+        const amount = document.getElementById('extraBudgetAmt').value;
+        
+        if (!amount || amount <= 0) {
+            return alert("⚠️ Please enter a valid number greater than 0.");
+        }
+
+        // Ask for confirmation so Admin doesn't do it by accident!
+        if (confirm(`Are you sure you want to permanently inject ${amount} Lakhs into EVERY team's purse?`)) {
+            socket.emit('addExtraBudget', amount);
+            document.getElementById('extraBudgetAmt').value = ''; // clear input
         }
     }
     function placeBid(increment) {
