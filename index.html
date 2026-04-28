@@ -144,18 +144,31 @@
                     </div>
 
                     <!-- Chat Window -->
-                    <div class="glass rounded-2xl border border-white/5 h-[400px] flex flex-col">
-                        <div class="p-4 border-b border-white/5 font-bold flex items-center gap-2">
-                            <i class="fa-solid fa-comments text-neon"></i> Live Chat
-                        </div>
-                        <div id="chatBox" class="flex-1 overflow-y-auto p-4 space-y-3 text-sm">
-                            <!-- Chats Injected -->
-                        </div>
-                        <div class="p-3 border-t border-white/5 flex gap-2">
-                            <input id="chatInput" type="text" placeholder="Type message..." class="flex-1 bg-gray-800 border border-gray-700 p-2 rounded outline-none text-sm">
-                            <button onclick="sendChat()" class="text-neon p-2"><i class="fa-solid fa-paper-plane"></i></button>
-                        </div>
-                    </div>
+<div class="glass rounded-2xl border border-white/5 h-[400px] flex flex-col overflow-hidden">
+    <div class="p-4 border-b border-white/5 font-bold flex items-center justify-between">
+        <div class="flex items-center gap-2">
+            <i class="fa-solid fa-comments text-neon"></i> Live Chat
+        </div>
+        <span class="text-[10px] bg-neon/10 text-neon px-2 py-0.5 rounded">Real-time</span>
+    </div>
+    
+    <!-- This is where messages appear -->
+    <div id="chatBox" class="flex-1 overflow-y-auto p-4 space-y-3 text-sm flex flex-col">
+        <p class="text-gray-600 text-center text-xs italic">Welcome to the auction chat</p>
+    </div>
+
+    <!-- Input Area -->
+    <div class="p-3 border-t border-white/5 bg-black/20">
+        <div class="flex gap-2">
+            <input id="chatInput" type="text" placeholder="Type a message..." 
+                class="flex-1 bg-gray-900 border border-gray-700 p-2.5 rounded-xl outline-none text-sm focus:border-neon transition"
+                onkeypress="handleChatKey(event)">
+            <button onclick="sendChat()" class="bg-neon text-black w-10 h-10 rounded-xl flex items-center justify-center hover:scale-105 active:scale-95 transition">
+                <i class="fa-solid fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+</div>
                 </div>
             </div>
         </main>
@@ -364,6 +377,89 @@ function renderAuction(state) {
 
 function startAuction(id, base) { socket.emit('startAuction', { playerId: id, baseValue: base }); }
 function bid(inc) { if(user) socket.emit('placeBid', { teamName: user.name, increment: inc }); }
+        // --- CHAT SYSTEM ---
+
+// 1. Listen for new messages from server
+socket.on('newMessage', (chatData) => {
+    addChatMessage(chatData);
+});
+
+// 2. Handle the "Enter" key to send
+function handleChatKey(e) {
+    if (e.key === 'Enter') {
+        sendChat();
+    }
+}
+
+// 3. Send message to server
+function sendChat() {
+    const input = document.getElementById('chatInput');
+    const message = input.value.trim();
+
+    // Don't send if empty
+    if (!message) return;
+
+    // Security check: Ensure user is logged in
+    if (!user || !user.name) {
+        alert("Please login to participate in chat!");
+        return;
+    }
+
+    const chatPayload = {
+        sender: user.name,
+        role: user.role,
+        text: message
+    };
+
+    console.log("Sending Chat:", chatPayload);
+    socket.emit('sendMessage', chatPayload);
+    
+    input.value = ''; // Clear input
+}
+
+// 4. Render message in the UI
+function addChatMessage(data) {
+    const box = document.getElementById('chatBox');
+    if (!box) return;
+
+    const div = document.createElement('div');
+    
+    // Style differently if it's the current user vs others
+    const isMe = user && data.sender === user.name;
+    const isAdmin = data.role === 'admin';
+
+    div.className = `max-w-[85%] p-3 rounded-2xl mb-1 ${
+        isMe 
+        ? 'self-end bg-emerald-600/20 border border-emerald-500/30' 
+        : 'self-start bg-gray-800/50 border border-white/5'
+    }`;
+
+    div.innerHTML = `
+        <div class="flex items-center gap-2 mb-1">
+            <span class="text-[10px] font-black uppercase tracking-widest ${isAdmin ? 'text-yellow-400' : 'text-neon'}">
+                ${data.sender}
+            </span>
+            ${isAdmin ? '<i class="fa-solid fa-shield-halved text-[10px] text-yellow-500"></i>' : ''}
+        </div>
+        <p class="text-gray-200 leading-relaxed">${data.text}</p>
+    `;
+
+    box.appendChild(div);
+
+    // Auto-scroll to bottom
+    box.scrollTop = box.scrollHeight;
+}
+
+// 5. Load history when first connecting
+socket.on('initialData', (data) => {
+    // ... your other initialData logic (players/teams) ...
+    
+    if (data.chats && Array.isArray(data.chats)) {
+        const box = document.getElementById('chatBox');
+        box.innerHTML = ''; // Clear "Waiting" message
+        data.chats.forEach(chat => addChatMessage(chat));
+    }
+});
 
 // Run auto-login check
 if(user) startApp();
