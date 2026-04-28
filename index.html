@@ -162,191 +162,168 @@
     </div>
 
     <script>
-        // REPLACE WITH YOUR ACTUAL DEPLOYED URL
-        const socket = io("https://nexus-go.onrender.com"); 
+        // 1. UPDATE THIS TO YOUR RENDER URL
+const socket = io("https://your-app-name.onrender.com"); 
 
-        // USER DATA BASED ON SERVER.JS
-        const ACCESS_MAP = {
-            "admin@nexus.com": { name: "Nexus Admin", role: "admin", pass: "admin123" },
-            "avirup@nexus.com": { name: "Team SHAKTI", role: "captain", pass: "avirup123" },
-            "sukdeb@nexus.com": { name: "Team NRG", role: "captain", pass: "sukdeb123" },
-            "trirup@nexus.com": { name: "Dominators", role: "captain", pass: "trirup123" },
-            "gourav@nexus.com": { name: "Aura Farmer's", role: "captain", pass: "gourav123" },
-            "abhisek@nexus.com": { name: "RISING FALCONS", role: "captain", pass: "abhisek123" },
-            "sanju@nexus.com": { name: "Golden Knights FC", role: "captain", pass: "sanju123" }
-        };
+// 2. CREDENTIALS MAP (Matches your server.js teams)
+const ACCESS_MAP = {
+    "admin@nexus.com": { name: "Nexus Admin", role: "admin", pass: "admin123" },
+    "avirup@nexus.com": { name: "Team SHAKTI", role: "captain", pass: "nexus2026" },
+    "sukdeb@nexus.com": { name: "Team NRG", role: "captain", pass: "nexus2026" },
+    "trirup@nexus.com": { name: "Dominators", role: "captain", pass: "nexus2026" },
+    "gourav@nexus.com": { name: "Aura Farmer's", role: "captain", pass: "nexus2026" },
+    "abhisek@nexus.com": { name: "RISING FALCONS", role: "captain", pass: "nexus2026" },
+    "sanju@nexus.com": { name: "Golden Knights FC", role: "captain", pass: "nexus2026" }
+};
 
-        let user = JSON.parse(localStorage.getItem('nexus_user')) || null;
+let user = JSON.parse(localStorage.getItem('nexus_user')) || null;
 
-        // --- AUTH LOGIC ---
-        function attemptLogin() {
-            const email = document.getElementById('email').value;
-            const pass = document.getElementById('password').value;
-            const profile = ACCESS_MAP[email];
+// --- LOGIN LOGIC ---
+function attemptLogin() {
+    const emailInput = document.getElementById('email').value.trim().toLowerCase(); // Removes spaces and forced lowercase
+    const passInput = document.getElementById('password').value.trim();
+    
+    console.log("Attempting login for:", emailInput); // Debugging
 
-            if (profile && profile.pass === pass) {
-                user = profile;
-                localStorage.setItem('nexus_user', JSON.stringify(user));
-                startApp();
-            } else {
-                document.getElementById('loginError').classList.remove('hidden');
-            }
-        }
+    const profile = ACCESS_MAP[emailInput];
 
-        function guestAccess() {
-            user = { name: "Guest Viewer", role: "guest" };
-            startApp();
-        }
+    if (profile && profile.pass === passInput) {
+        user = profile;
+        localStorage.setItem('nexus_user', JSON.stringify(user));
+        console.log("Login Success:", user.name);
+        startApp();
+    } else {
+        console.error("Login Failed: Invalid credentials");
+        document.getElementById('loginError').classList.remove('hidden');
+        // Hide error after 3 seconds
+        setTimeout(() => {
+            document.getElementById('loginError').classList.add('hidden');
+        }, 3000);
+    }
+}
 
-        function logout() {
-            localStorage.removeItem('nexus_user');
-            location.reload();
-        }
+function guestAccess() {
+    user = { name: "Guest Viewer", role: "guest" };
+    startApp();
+}
 
-        function startApp() {
-            document.getElementById('loginModal').classList.add('hidden');
-            document.getElementById('dashboard').classList.remove('hidden');
-            document.getElementById('userName').innerText = user.name;
-            document.getElementById('userRole').innerText = user.role;
+function logout() {
+    localStorage.removeItem('nexus_user');
+    location.reload();
+}
 
-            if (user.role === 'admin') {
-                document.getElementById('adminControls').classList.remove('hidden');
-                document.getElementById('adminPlayerForm').classList.remove('hidden');
-                document.getElementById('adminPurseControl').classList.remove('hidden');
-            }
-        }
+function startApp() {
+    if(!user) return;
+    document.getElementById('loginModal').classList.add('hidden');
+    document.getElementById('dashboard').classList.remove('hidden');
+    document.getElementById('userName').innerText = user.name;
+    document.getElementById('userRole').innerText = user.role;
 
-        // --- SOCKET EVENTS ---
-        socket.on('initialData', (data) => {
-            renderPlayers(data.players);
-            renderTeams(data.teams);
-            renderAuction(data.state);
-            data.chats.forEach(addChatMessage);
-        });
+    if (user.role === 'admin') {
+        document.getElementById('adminControls').classList.remove('hidden');
+        document.getElementById('adminPlayerForm').classList.remove('hidden');
+        document.getElementById('adminPurseControl').classList.remove('hidden');
+    }
+}
 
-        socket.on('updatePlayers', renderPlayers);
-        socket.on('updateTeams', renderTeams);
-        socket.on('updateAuction', renderAuction);
-        socket.on('newMessage', addChatMessage);
-        socket.on('errorMsg', msg => alert("Error: " + msg));
-        socket.on('alertMsg', msg => alert(msg));
+// --- DATA RENDERING (With "undefined" fix) ---
+socket.on('initialData', (data) => {
+    renderPlayers(data.players);
+    renderTeams(data.teams);
+    renderAuction(data.state);
+    if(data.chats) data.chats.forEach(addChatMessage);
+});
 
-        // --- RENDER FUNCTIONS ---
-        
+socket.on('updatePlayers', renderPlayers);
+socket.on('updateTeams', renderTeams);
+socket.on('updateAuction', renderAuction);
 
-        function renderTeams(teams) {
-            const list = document.getElementById('budgetList');
-            list.innerHTML = teams.map(t => `
-                <div class="flex justify-between items-center p-3 rounded-lg hover:bg-white/5 border border-transparent hover:border-white/5 transition">
-                    <span class="text-sm font-semibold">${t.name}</span>
-                    <span cfunction renderPlayers(players) {
+function renderPlayers(players) {
     const list = document.getElementById('playerList');
+    if (!list) return;
+
     list.innerHTML = players.map(p => {
-        // This line checks all common names for 'Value'. 
-        // It uses p.baseValue, but if that's missing, it tries p.value or p.base_value
-        const displayValue = p.baseValue || p.value || p.base_price || 0;
-        const displayStrength = p.strength || p.rating || p.power || 0;
+        // FIX FOR UNDEFINED VALUES: 
+        // Checks 'baseValue' first, then 'value', then 'base_price', defaults to 0
+        const val = p.baseValue || p.value || p.base_price || 0;
+        const str = p.strength || p.rating || p.power || "N/A";
 
         return `
             <tr class="hover:bg-white/5 transition">
                 <td class="p-4 font-bold text-white">${p.name}</td>
-                <td class="p-4 text-gray-400">${displayStrength}</td>
+                <td class="p-4 text-gray-400">${str}</td>
                 <td class="p-4">
                     <span class="px-2 py-0.5 rounded-full text-[10px] border border-gray-600 bg-gray-800 text-gray-300">${p.cardType || 'Standard'}</span>
                 </td>
                 <td class="p-4">
                     <span class="font-bold ${p.status === 'Available' ? 'text-neon' : 'text-red-500'}">${p.status}</span>
                 </td>
-                <td class="p-4 text-white">${displayValue} L</td>
+                <td class="p-4 text-white">${val} L</td>
                 <td class="p-4 text-center">
-                    ${user.role === 'admin' && p.status === 'Available' ? 
-                      `<button onclick="startAuction('${p._id}', ${displayValue})" class="bg-neon text-black text-[10px] px-3 py-1 rounded-md font-bold uppercase">Start</button>` : 
-                      (p.status === 'Sold' ? `<span class="text-[10px] text-gray-600">${p.soldTo}</span>` : '---')}
+                    ${user && user.role === 'admin' && p.status === 'Available' ? 
+                      `<button onclick="startAuction('${p._id}', ${val})" class="bg-neon text-black text-[10px] px-3 py-1 rounded-md font-bold uppercase">Start</button>` : 
+                      (p.status === 'Sold' ? `<span class="text-[10px] text-gray-600">${p.soldTo || 'Sold'}</span>` : '---')}
                 </td>
             </tr>
         `;
     }).join('');
-}lass="text-neon font-black">${t.budget} Lakhs</span>
+}
+
+function renderTeams(teams) {
+    const list = document.getElementById('budgetList');
+    if(!list) return;
+    list.innerHTML = teams.map(t => `
+        <div class="flex justify-between items-center p-3 rounded-lg hover:bg-white/5 border border-transparent hover:border-white/5 transition">
+            <span class="text-sm font-semibold">${t.name}</span>
+            <span class="text-neon font-black">${t.budget} Lakhs</span>
+        </div>
+    `).join('');
+}
+
+function renderAuction(state) {
+    const container = document.getElementById('auctionDisplay');
+    if (!container) return;
+    if (!state || !state.activePlayerId) {
+        container.innerHTML = `<p class="text-gray-500 italic">No active auction. Waiting for Admin...</p>`;
+        return;
+    }
+
+    const p = state.activePlayerId;
+    const isHighest = user && state.highestBidder === user.name;
+
+    container.innerHTML = `
+        <div class="animate-in fade-in zoom-in duration-500">
+            <h2 class="text-4xl font-black text-white mb-1 uppercase tracking-tight">${p.name}</h2>
+            <p class="text-neon text-xs font-bold uppercase tracking-[0.2em] mb-6">${p.cardType || 'Player'} | ${p.strength || ''} Strength</p>
+            <div class="flex flex-col md:flex-row items-center justify-center gap-4">
+                <div class="bg-black/60 px-10 py-6 rounded-2xl border border-white/10 min-w-[200px]">
+                    <p class="text-[10px] uppercase text-gray-500 tracking-widest mb-1">Current Bid</p>
+                    <p class="text-5xl font-black text-yellow-400">${state.currentBid}<span class="text-xl">L</span></p>
                 </div>
-            `).join('');
-        }
-
-        function renderAuction(state) {
-            const container = document.getElementById('auctionDisplay');
-            if (!state || !state.activePlayerId) {
-                container.innerHTML = `<p class="text-gray-500 italic">No active auction. Waiting for Admin...</p>`;
-                return;
-            }
-
-            const p = state.activePlayerId;
-            const isHighest = state.highestBidder === user.name;
-
-            container.innerHTML = `
-                <div class="animate-in fade-in zoom-in duration-500">
-                    <h2 class="text-4xl font-black text-white mb-1 uppercase tracking-tight">${p.name}</h2>
-                    <p class="text-neon text-xs font-bold uppercase tracking-[0.2em] mb-6">${p.cardType} | ${p.strength} Strength</p>
-                    
-                    <div class="flex flex-col md:flex-row items-center justify-center gap-4">
-                        <div class="bg-black/60 px-10 py-6 rounded-2xl border border-white/10 min-w-[200px]">
-                            <p class="text-[10px] uppercase text-gray-500 tracking-widest mb-1">Current Highest Bid</p>
-                            <p class="text-5xl font-black text-yellow-400">${state.currentBid}<span class="text-xl">L</span></p>
-                        </div>
-                        <div class="text-left">
-                            <p class="text-xs uppercase text-gray-500 mb-1">Highest Bidder</p>
-                            <p class="text-xl font-bold text-white">${state.highestBidder || '---'}</p>
-                            <div class="h-1 w-full bg-neon/30 mt-2 rounded-full overflow-hidden">
-                                <div class="h-full bg-neon animate-pulse w-full"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    ${user.role === 'captain' ? `
-                        <div class="mt-8 flex justify-center gap-4">
-                            <button onclick="bid(5)" class="bg-neon text-black font-black px-8 py-3 rounded-xl shadow-lg shadow-emerald-500/20 active:scale-95 transition ${isHighest ? 'opacity-50 pointer-events-none' : ''}">BID +5 L</button>
-                            <button onclick="bid(10)" class="bg-neon text-black font-black px-8 py-3 rounded-xl shadow-lg shadow-emerald-500/20 active:scale-95 transition ${isHighest ? 'opacity-50 pointer-events-none' : ''}">BID +10 L</button>
-                        </div>
-                    ` : ''}
+                <div class="text-left">
+                    <p class="text-xs uppercase text-gray-500 mb-1">Highest Bidder</p>
+                    <p class="text-xl font-bold text-white">${state.highestBidder || '---'}</p>
                 </div>
-            `;
-        }
+            </div>
+            ${user && user.role === 'captain' ? `
+                <div class="mt-8 flex justify-center gap-4">
+                    <button onclick="bid(5)" class="bg-neon text-black font-black px-8 py-3 rounded-xl ${isHighest ? 'opacity-50 pointer-events-none' : 'active:scale-95'}">BID +5 L</button>
+                    <button onclick="bid(10)" class="bg-neon text-black font-black px-8 py-3 rounded-xl ${isHighest ? 'opacity-50 pointer-events-none' : 'active:scale-95'}">BID +10 L</button>
+                </div>
+            ` : ''}
+        </div>
+    `;
+}
 
-        // --- ACTIONS ---
-        function startAuction(id, base) { socket.emit('startAuction', { playerId: id, baseValue: base }); }
-        function bid(inc) { socket.emit('placeBid', { teamName: user.name, increment: inc }); }
-        function addBonus() { 
-            const amt = document.getElementById('bonusAmt').value;
-            if(amt) { socket.emit('addExtraBudget', amt); document.getElementById('bonusAmt').value = ''; }
-        }
-        function addPlayer() {
-            const data = {
-                name: document.getElementById('pName').value,
-                strength: document.getElementById('pStrength').value,
-                cardType: document.getElementById('pType').value,
-                baseValue: document.getElementById('pBase').value,
-                status: 'Available'
-            };
-            socket.emit('addPlayer', data);
-            document.querySelectorAll('#adminPlayerForm input').forEach(i => i.value = '');
-        }
+function startAuction(id, base) { socket.emit('startAuction', { playerId: id, baseValue: base }); }
+function bid(inc) { if(user) socket.emit('placeBid', { teamName: user.name, increment: inc }); }
 
-        // --- CHAT ---
-        function sendChat() {
-            const text = document.getElementById('chatInput').value;
-            if(!text) return;
-            socket.emit('sendMessage', { sender: user.name, role: user.role, text: text });
-            document.getElementById('chatInput').value = '';
-        }
+// Run auto-login check
+if(user) startApp();
 
-        function addChatMessage(data) {
-            const box = document.getElementById('chatBox');
-            const div = document.createElement('div');
-            div.className = "p-2 bg-white/5 rounded-lg border-l-2 " + (data.role === 'admin' ? 'border-yellow-500' : 'border-neon');
-            div.innerHTML = `<p class="text-[10px] font-bold text-gray-500 uppercase">${data.sender}</p><p class="text-white">${data.text}</p>`;
-            box.appendChild(div);
-            box.scrollTop = box.scrollHeight;
-        }
-
-        if(user) startApp();
+            
+        
+            
     </script>
 </body>
 </html>
