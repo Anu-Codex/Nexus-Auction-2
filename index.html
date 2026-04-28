@@ -451,11 +451,60 @@
     function appendChat(chat, autoScroll) {
         const chatBox = document.getElementById('chatMessages');
         
-        // Remove "No messages yet" text if it's the first message
-        if (chatBox.innerHTML.includes("No messages yet")) chatBox.innerHTML = '';
+        // Remove empty placeholder
+        if (chatBox.innerHTML.includes("No messages yet")) {
+            chatBox.innerHTML = '';
+        }
 
-        // Format the time (e.g., 2:30 PM)
-        const time = new Date(chat.timestamp).toLocaleTimeString(
+        // Safe Time Formatter (HH:MM AM/PM)
+        const dateObj = new Date(chat.timestamp);
+        let hours = dateObj.getHours();
+        let minutes = dateObj.getMinutes();
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12;
+        hours = hours ? hours : 12; 
+        minutes = minutes < 10 ? '0' + minutes : minutes;
+        const timeStr = hours + ':' + minutes + ' ' + ampm;
+
+        // Admin is red with a crown, Captains are green
+        let senderColor = chat.role === 'admin' ? 'var(--danger)' : 'var(--primary)';
+        let senderName = chat.role === 'admin' ? '👑 Admin' : chat.sender;
+
+        // Create the message display
+        const msgDiv = document.createElement('div');
+        msgDiv.style.marginBottom = '8px';
+        msgDiv.style.lineHeight = '1.4';
+        
+        msgDiv.innerHTML = `
+            <span style="color: var(--text-muted); font-size: 11px;">[${timeStr}]</span> 
+            <strong style="color: ${senderColor}; font-size: 14px;">${senderName}:</strong> 
+            <span style="font-size: 14px; color: #fff;">${chat.text}</span>
+        `;
+        
+        chatBox.appendChild(msgDiv);
+
+        // Auto-scroll to the newest message
+        if (autoScroll) {
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+    }
+
+    // 2. SEND A CHAT MESSAGE
+    function sendChat() {
+        if (!currentUser) return;
+        
+        const input = document.getElementById('chatInput');
+        const text = input.value.trim();
+        
+        if (text !== '') {
+            socket.emit('sendMessage', {
+                sender: currentUser.team,
+                role: currentUser.role,
+                text: text
+            });
+            input.value = ''; // clear input box
+        }
+    }
 </script>
 </body>
 </html>
