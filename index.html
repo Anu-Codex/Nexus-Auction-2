@@ -3,218 +3,343 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nexus PES Legends - Auction 2026</title>
+    <title>Nexus PES Legends | Auction 2026</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #0a0f16;
-            color: #e2e8f0;
-        }
-        .glass-card {
-            background: #111827;
-            border: 1px solid #1f2937;
-        }
-        .auction-border {
-            border: 1px solid #10b981;
-        }
-        .text-neon-green { color: #10b981; }
-        .bg-neon-green { background-color: #10b981; }
-        
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #0a0f16; }
-        ::-webkit-scrollbar-thumb { background: #1f2937; border-radius: 10px; }
-        
-        .pulse {
-            animation: pulse-animation 2s infinite;
-        }
-        @keyframes pulse-animation {
-            0% { box-shadow: 0 0 0 0px rgba(239, 68, 68, 0.7); }
-            100% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
-        }
+        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&display=swap');
+        body { font-family: 'Rajdhani', sans-serif; background-color: #0a0f16; color: #e2e8f0; }
+        .glass { background: rgba(17, 24, 39, 0.8); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.05); }
+        .neon-border { border: 1px solid #10b981; box-shadow: 0 0 15px rgba(16, 185, 129, 0.2); }
+        .text-neon { color: #10b981; }
+        .bg-neon { background-color: #10b981; }
+        .pulse { animation: pulse-red 2s infinite; }
+        @keyframes pulse-red { 0% { box-shadow: 0 0 0 0px rgba(239, 68, 68, 0.7); } 100% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } }
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-thumb { background: #10b981; border-radius: 10px; }
     </style>
 </head>
-<body class="p-2 md:p-4">
+<body class="min-h-screen">
 
-    <!-- Top Navigation -->
-    <nav class="flex justify-between items-center mb-6 px-2">
-        <div class="flex items-center gap-2">
-            <i class="fa-solid fa-gamepad text-neon-green text-xl"></i>
-            <h1 class="font-bold text-lg tracking-tight text-neon-green">Nexus PES Legends</h1>
-        </div>
-        <div class="flex items-center gap-3">
-            <span class="text-xs text-gray-400 uppercase tracking-widest">
-                <span id="userTeam">RISING FALCONS</span> | <span class="text-gray-500">captain</span>
-            </span>
-            <button class="bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1 rounded font-bold transition">Logout</button>
-        </div>
-    </nav>
-
-    <!-- Main Title -->
-    <div class="text-center mb-8">
-        <h2 class="text-2xl font-bold flex justify-center items-center gap-2">
-            🏆 Nexus Auction Carnival 2026
-        </h2>
-    </div>
-
-    <!-- Top Grid: Live Auction & Budgets -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-        
-        <!-- Live Auction Card -->
-        <div class="lg:col-span-2 glass-card auction-border rounded-lg p-6 min-h-[300px] flex flex-col items-center justify-center relative">
-            <div class="absolute top-4 left-4 flex items-center gap-2">
-                <span class="h-3 w-3 bg-red-500 rounded-full pulse"></span>
-                <span class="text-neon-green font-bold text-sm tracking-widest uppercase">Live Auction</span>
+    <!-- LOGIN MODAL -->
+    <div id="loginModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/95">
+        <div class="glass p-8 rounded-2xl w-full max-w-md border border-emerald-500/30">
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-bold text-neon uppercase tracking-tighter">Nexus PES Legends</h1>
+                <p class="text-gray-400 text-sm">Tournament Auction Portal</p>
             </div>
-            
-            <div id="auctionContent" class="text-center">
-                <p class="text-gray-500 italic">Waiting for Admin...</p>
-                <!-- Active player details will be injected here -->
-            </div>
-        </div>
-
-        <!-- Team Budgets Card -->
-        <div class="glass-card rounded-lg overflow-hidden border border-gray-800">
-            <div class="bg-[#064e3b] p-3 flex items-center gap-2">
-                <i class="fa-solid fa-wallet text-yellow-400"></i>
-                <h3 class="font-bold text-sm text-green-100">Team Budgets</h3>
-            </div>
-            <table class="w-full text-left text-sm">
-                <thead class="bg-black text-gray-400 uppercase text-[10px]">
-                    <tr>
-                        <th class="p-3">Team</th>
-                        <th class="p-3 text-right">Purse Left</th>
-                    </tr>
-                </thead>
-                <tbody id="budgetTableBody">
-                    <!-- Teams injected here -->
-                </tbody>
-            </table>
+            <input type="email" id="email" placeholder="Email Address" class="w-full bg-gray-900 border border-gray-700 p-3 rounded-lg mb-4 outline-none focus:border-neon transition">
+            <input type="password" id="password" placeholder="Password" class="w-full bg-gray-900 border border-gray-700 p-3 rounded-lg mb-6 outline-none focus:border-neon transition">
+            <button onclick="attemptLogin()" class="w-full bg-neon text-black font-bold py-3 rounded-lg hover:brightness-110 transition mb-4">LOGIN AS CAPTAIN/ADMIN</button>
+            <button onclick="guestAccess()" class="w-full bg-gray-800 text-gray-300 py-3 rounded-lg hover:bg-gray-700 transition">CONTINUE AS GUEST (VIEW ONLY)</button>
+            <p id="loginError" class="text-red-500 text-center mt-4 hidden">Invalid Credentials!</p>
         </div>
     </div>
 
-    <!-- Admin Purse Management (Only visible to admin logic) -->
-    <div class="glass-card rounded-lg p-4 mb-6 border border-gray-800">
-        <div class="flex items-center gap-2 mb-3">
-            <i class="fa-solid fa-coins text-yellow-500"></i>
-            <h3 class="text-sm font-bold">Purse Management</h3>
-        </div>
-        <div class="flex gap-2">
-            <input id="extraBudgetInput" type="number" placeholder="Amount to add (e.g. 50)" 
-                class="bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm w-full focus:outline-none focus:border-neon-green">
-            <button onclick="addBudget()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded text-sm font-bold whitespace-nowrap transition">
-                Add Bonus to All Teams
-            </button>
-        </div>
-        <p class="text-[10px] text-gray-500 mt-2">*This adds the amount to their current balance without affecting sold players.</p>
-    </div>
+    <!-- MAIN DASHBOARD (Hidden initially) -->
+    <div id="dashboard" class="hidden pb-10">
+        <!-- Header -->
+        <nav class="glass sticky top-0 z-40 px-6 py-4 flex justify-between items-center border-b border-white/5">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-circle-nodes text-neon text-2xl"></i>
+                <span class="font-bold text-xl tracking-tight uppercase">Nexus <span class="text-neon">Auction</span></span>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="text-right hidden md:block">
+                    <p id="userName" class="text-sm font-bold leading-none">Guest User</p>
+                    <p id="userRole" class="text-[10px] text-neon uppercase tracking-widest">Spectator</p>
+                </div>
+                <button onclick="logout()" class="bg-red-500/20 hover:bg-red-500 text-red-500 hover:text-white px-4 py-1.5 rounded-md text-sm font-bold transition">LOGOUT</button>
+            </div>
+        </nav>
 
-    <!-- Available Player List -->
-    <div class="glass-card rounded-lg overflow-hidden border border-gray-800">
-        <div class="bg-[#064e3b] p-3 flex items-center gap-2 border-b border-emerald-900">
-            <i class="fa-solid fa-users text-white"></i>
-            <h3 class="font-bold text-sm text-white">Available Player List</h3>
-        </div>
-        <div class="overflow-x-auto">
-            <table class="w-full text-left text-sm">
-                <thead class="bg-black text-neon-green uppercase text-[10px] border-b border-gray-800">
-                    <tr>
-                        <th class="p-4">Name</th>
-                        <th class="p-4">Strength</th>
-                        <th class="p-4">Card Type</th>
-                        <th class="p-4">Base Value</th>
-                        <th class="p-4">Status</th>
-                        <th class="p-4">Sold To</th>
-                    </tr>
-                </thead>
-                <tbody id="playerTableBody" class="divide-y divide-gray-800">
-                    <tr>
-                        <td colspan="6" class="p-10 text-center text-gray-500">Connecting to database...</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+        <main class="max-w-7xl mx-auto p-4 md:p-6">
+            <div class="text-center my-8">
+                <h2 class="text-4xl font-black uppercase italic tracking-tighter">🏆 Nexus Auction Carnival 2026</h2>
+                <div class="h-1 w-24 bg-neon mx-auto mt-2 rounded-full"></div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- Left: Live Bidding & Admin Controls -->
+                <div class="lg:col-span-8 space-y-6">
+                    
+                    <!-- Live Auction Card -->
+                    <div class="glass neon-border rounded-2xl p-6 relative overflow-hidden min-h-[350px] flex flex-col items-center justify-center">
+                        <div class="absolute top-4 left-4 flex items-center gap-2">
+                            <span class="h-3 w-3 bg-red-500 rounded-full pulse"></span>
+                            <span class="text-xs font-bold uppercase tracking-widest">Live Session</span>
+                        </div>
+
+                        <div id="auctionDisplay" class="text-center w-full">
+                            <!-- Injected by JS -->
+                            <p class="text-gray-500 animate-pulse">Waiting for auction to begin...</p>
+                        </div>
+
+                        <!-- Admin Auction Controls -->
+                        <div id="adminControls" class="hidden mt-8 pt-6 border-t border-white/5 w-full flex flex-wrap justify-center gap-4">
+                            <button onclick="socket.emit('sellPlayer')" class="bg-blue-600 hover:bg-blue-500 text-white px-8 py-2 rounded-full font-bold">SELL PLAYER</button>
+                            <button onclick="socket.emit('cancelAuction')" class="bg-gray-700 hover:bg-gray-600 text-white px-8 py-2 rounded-full font-bold">CANCEL</button>
+                        </div>
+                    </div>
+
+                    <!-- Admin: Add Player Dashboard -->
+                    <div id="adminPlayerForm" class="hidden glass rounded-2xl p-6 border border-white/5">
+                        <h3 class="text-lg font-bold mb-4 flex items-center gap-2"><i class="fa-solid fa-user-plus text-neon"></i> Add New Player to Auction</h3>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <input id="pName" type="text" placeholder="Name" class="bg-gray-800 border border-gray-700 p-2 rounded outline-none focus:border-neon">
+                            <input id="pStrength" type="number" placeholder="Strength" class="bg-gray-800 border border-gray-700 p-2 rounded outline-none focus:border-neon">
+                            <select id="pType" class="bg-gray-800 border border-gray-700 p-2 rounded outline-none">
+                                <option>Show Time</option><option>Epic</option><option>Highlight</option><option>Standard</option>
+                            </select>
+                            <input id="pBase" type="number" placeholder="Base Value (L)" class="bg-gray-800 border border-gray-700 p-2 rounded outline-none focus:border-neon">
+                        </div>
+                        <button onclick="addPlayer()" class="mt-4 w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded transition">ADD TO ROSTER</button>
+                    </div>
+
+                    <!-- Available Player Table -->
+                    <div class="glass rounded-2xl overflow-hidden border border-white/5">
+                        <div class="bg-emerald-900/30 p-4 border-b border-white/5">
+                            <h3 class="font-bold flex items-center gap-2"><i class="fa-solid fa-list text-neon"></i> Available Player List</h3>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left">
+                                <thead class="bg-black/40 text-[11px] uppercase tracking-wider text-gray-400">
+                                    <tr>
+                                        <th class="p-4">Name</th>
+                                        <th class="p-4">Strength</th>
+                                        <th class="p-4">Card Type</th>
+                                        <th class="p-4">Status</th>
+                                        <th class="p-4">Base Value</th>
+                                        <th class="p-4 text-center">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="playerList" class="text-sm divide-y divide-white/5">
+                                    <!-- Injected -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Side: Budgets & Chat -->
+                <div class="lg:col-span-4 space-y-6">
+                    <!-- Budgets -->
+                    <div class="glass rounded-2xl border border-white/5 overflow-hidden">
+                        <div class="bg-emerald-900/30 p-4 border-b border-white/5 flex justify-between items-center">
+                            <h3 class="font-bold">Team Budgets</h3>
+                            <i class="fa-solid fa-wallet text-yellow-500"></i>
+                        </div>
+                        <div id="budgetList" class="p-2 space-y-1">
+                            <!-- Injected -->
+                        </div>
+                        <!-- Admin Purse Management -->
+                        <div id="adminPurseControl" class="hidden p-4 bg-black/20 border-t border-white/5">
+                            <p class="text-[10px] uppercase text-gray-500 mb-2">Bonus Management</p>
+                            <div class="flex gap-2">
+                                <input id="bonusAmt" type="number" placeholder="Amt" class="w-full bg-gray-800 border border-gray-700 p-1.5 rounded text-sm outline-none">
+                                <button onclick="addBonus()" class="bg-neon text-black font-bold px-3 py-1.5 rounded text-xs">ADD</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Chat Window -->
+                    <div class="glass rounded-2xl border border-white/5 h-[400px] flex flex-col">
+                        <div class="p-4 border-b border-white/5 font-bold flex items-center gap-2">
+                            <i class="fa-solid fa-comments text-neon"></i> Live Chat
+                        </div>
+                        <div id="chatBox" class="flex-1 overflow-y-auto p-4 space-y-3 text-sm">
+                            <!-- Chats Injected -->
+                        </div>
+                        <div class="p-3 border-t border-white/5 flex gap-2">
+                            <input id="chatInput" type="text" placeholder="Type message..." class="flex-1 bg-gray-800 border border-gray-700 p-2 rounded outline-none text-sm">
+                            <button onclick="sendChat()" class="text-neon p-2"><i class="fa-solid fa-paper-plane"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
     </div>
 
     <script>
-        // REPLACE WITH YOUR ACTUAL BACKEND URL
-        const socket = io("https://nexus-go.onrender.com/"); 
+        // REPLACE WITH YOUR ACTUAL DEPLOYED URL
+        const socket = io("http://localhost:3000"); 
 
-        const playerTableBody = document.getElementById('playerTableBody');
-        const budgetTableBody = document.getElementById('budgetTableBody');
-        const auctionContent = document.getElementById('auctionContent');
+        // USER DATA BASED ON SERVER.JS
+        const ACCESS_MAP = {
+            "admin@nexus.com": { name: "Nexus Admin", role: "admin", pass: "admin123" },
+            "avirup@nexus.com": { name: "Team SHAKTI", role: "captain", pass: "nexus2026" },
+            "sukdeb@nexus.com": { name: "Team NRG", role: "captain", pass: "nexus2026" },
+            "trirup@nexus.com": { name: "Dominators", role: "captain", pass: "nexus2026" },
+            "gourav@nexus.com": { name: "Aura Farmer's", role: "captain", pass: "nexus2026" },
+            "abhisek@nexus.com": { name: "RISING FALCONS", role: "captain", pass: "nexus2026" },
+            "sanju@nexus.com": { name: "Golden Knights FC", role: "captain", pass: "nexus2026" }
+        };
 
-        // Initial Data Load
+        let user = JSON.parse(localStorage.getItem('nexus_user')) || null;
+
+        // --- AUTH LOGIC ---
+        function attemptLogin() {
+            const email = document.getElementById('email').value;
+            const pass = document.getElementById('password').value;
+            const profile = ACCESS_MAP[email];
+
+            if (profile && profile.pass === pass) {
+                user = profile;
+                localStorage.setItem('nexus_user', JSON.stringify(user));
+                startApp();
+            } else {
+                document.getElementById('loginError').classList.remove('hidden');
+            }
+        }
+
+        function guestAccess() {
+            user = { name: "Guest Viewer", role: "guest" };
+            startApp();
+        }
+
+        function logout() {
+            localStorage.removeItem('nexus_user');
+            location.reload();
+        }
+
+        function startApp() {
+            document.getElementById('loginModal').classList.add('hidden');
+            document.getElementById('dashboard').classList.remove('hidden');
+            document.getElementById('userName').innerText = user.name;
+            document.getElementById('userRole').innerText = user.role;
+
+            if (user.role === 'admin') {
+                document.getElementById('adminControls').classList.remove('hidden');
+                document.getElementById('adminPlayerForm').classList.remove('hidden');
+                document.getElementById('adminPurseControl').classList.remove('hidden');
+            }
+        }
+
+        // --- SOCKET EVENTS ---
         socket.on('initialData', (data) => {
             renderPlayers(data.players);
-            renderBudgets(data.teams);
+            renderTeams(data.teams);
             renderAuction(data.state);
+            data.chats.forEach(addChatMessage);
         });
 
-        // Real-time Updates
-        socket.on('updatePlayers', (players) => renderPlayers(players));
-        socket.on('updateTeams', (teams) => renderBudgets(teams));
-        socket.on('updateAuction', (state) => renderAuction(state));
+        socket.on('updatePlayers', renderPlayers);
+        socket.on('updateTeams', renderTeams);
+        socket.on('updateAuction', renderAuction);
+        socket.on('newMessage', addChatMessage);
+        socket.on('errorMsg', msg => alert("Error: " + msg));
+        socket.on('alertMsg', msg => alert(msg));
 
-        // Alert handling
-        socket.on('alertMsg', (msg) => alert(msg));
-        socket.on('errorMsg', (msg) => alert("❌ Error: " + msg));
-
+        // --- RENDER FUNCTIONS ---
         function renderPlayers(players) {
-            playerTableBody.innerHTML = players.map(p => `
-                <tr class="hover:bg-gray-800/50 transition">
-                    <td class="p-4 font-semibold">${p.name}</td>
-                    <td class="p-4 text-gray-300">${p.strength}</td>
-                    <td class="p-4 text-gray-300">${p.cardType}</td>
-                    <td class="p-4 text-gray-300">${p.baseValue} L</td>
-                    <td class="p-4 font-bold ${p.status === 'Available' ? 'text-neon-green' : 'text-red-500'}">
-                        ${p.status}
+            const list = document.getElementById('playerList');
+            list.innerHTML = players.map(p => `
+                <tr class="hover:bg-white/5 transition">
+                    <td class="p-4 font-bold text-white">${p.name}</td>
+                    <td class="p-4 text-gray-400">${p.strength}</td>
+                    <td class="p-4">
+                        <span class="px-2 py-0.5 rounded-full text-[10px] border border-gray-600 bg-gray-800 text-gray-300">${p.cardType}</span>
                     </td>
-                    <td class="p-4 text-gray-400">${p.soldTo || '-'}</td>
+                    <td class="p-4">
+                        <span class="font-bold ${p.status === 'Available' ? 'text-neon' : 'text-red-500'}">${p.status}</span>
+                    </td>
+                    <td class="p-4 text-white">${p.baseValue} L</td>
+                    <td class="p-4 text-center">
+                        ${user.role === 'admin' && p.status === 'Available' ? 
+                          `<button onclick="startAuction('${p._id}', ${p.baseValue})" class="bg-neon text-black text-[10px] px-3 py-1 rounded-md font-bold uppercase">Start</button>` : 
+                          (p.status === 'Sold' ? `<span class="text-[10px] text-gray-600">${p.soldTo}</span>` : '---')}
+                    </td>
                 </tr>
             `).join('');
         }
 
-        function renderBudgets(teams) {
-            budgetTableBody.innerHTML = teams.map(t => `
-                <tr class="border-b border-gray-800 hover:bg-gray-800/30">
-                    <td class="p-3 font-medium">${t.name}</td>
-                    <td class="p-3 text-right text-neon-green font-bold">${t.budget.toFixed(2)} L</td>
-                </tr>
+        function renderTeams(teams) {
+            const list = document.getElementById('budgetList');
+            list.innerHTML = teams.map(t => `
+                <div class="flex justify-between items-center p-3 rounded-lg hover:bg-white/5 border border-transparent hover:border-white/5 transition">
+                    <span class="text-sm font-semibold">${t.name}</span>
+                    <span class="text-neon font-black">${t.budget} Lakhs</span>
+                </div>
             `).join('');
         }
 
         function renderAuction(state) {
+            const container = document.getElementById('auctionDisplay');
             if (!state || !state.activePlayerId) {
-                auctionContent.innerHTML = `<p class="text-gray-500 italic">Waiting for Admin...</p>`;
+                container.innerHTML = `<p class="text-gray-500 italic">No active auction. Waiting for Admin...</p>`;
                 return;
             }
 
-            const player = state.activePlayerId;
-            auctionContent.innerHTML = `
-                <div class="animate-in fade-in duration-500">
-                    <h2 class="text-3xl font-bold text-white mb-2">${player.name}</h2>
-                    <p class="text-neon-green tracking-widest uppercase text-xs mb-4">${player.cardType} | STR: ${player.strength}</p>
-                    <div class="bg-black/50 p-4 rounded-lg inline-block border border-gray-700">
-                        <p class="text-gray-400 text-xs uppercase">Current Bid</p>
-                        <p class="text-4xl font-black text-yellow-400">${state.currentBid} L</p>
-                        <p class="text-sm text-gray-300 mt-2">Highest Bidder: <span class="text-white font-bold">${state.highestBidder || 'None'}</span></p>
+            const p = state.activePlayerId;
+            const isHighest = state.highestBidder === user.name;
+
+            container.innerHTML = `
+                <div class="animate-in fade-in zoom-in duration-500">
+                    <h2 class="text-4xl font-black text-white mb-1 uppercase tracking-tight">${p.name}</h2>
+                    <p class="text-neon text-xs font-bold uppercase tracking-[0.2em] mb-6">${p.cardType} | ${p.strength} Strength</p>
+                    
+                    <div class="flex flex-col md:flex-row items-center justify-center gap-4">
+                        <div class="bg-black/60 px-10 py-6 rounded-2xl border border-white/10 min-w-[200px]">
+                            <p class="text-[10px] uppercase text-gray-500 tracking-widest mb-1">Current Highest Bid</p>
+                            <p class="text-5xl font-black text-yellow-400">${state.currentBid}<span class="text-xl">L</span></p>
+                        </div>
+                        <div class="text-left">
+                            <p class="text-xs uppercase text-gray-500 mb-1">Highest Bidder</p>
+                            <p class="text-xl font-bold text-white">${state.highestBidder || '---'}</p>
+                            <div class="h-1 w-full bg-neon/30 mt-2 rounded-full overflow-hidden">
+                                <div class="h-full bg-neon animate-pulse w-full"></div>
+                            </div>
+                        </div>
                     </div>
+
+                    ${user.role === 'captain' ? `
+                        <div class="mt-8 flex justify-center gap-4">
+                            <button onclick="bid(5)" class="bg-neon text-black font-black px-8 py-3 rounded-xl shadow-lg shadow-emerald-500/20 active:scale-95 transition ${isHighest ? 'opacity-50 pointer-events-none' : ''}">BID +5 L</button>
+                            <button onclick="bid(10)" class="bg-neon text-black font-black px-8 py-3 rounded-xl shadow-lg shadow-emerald-500/20 active:scale-95 transition ${isHighest ? 'opacity-50 pointer-events-none' : ''}">BID +10 L</button>
+                        </div>
+                    ` : ''}
                 </div>
             `;
         }
 
-        function addBudget() {
-            const amount = document.getElementById('extraBudgetInput').value;
-            if (amount) {
-                socket.emit('addExtraBudget', amount);
-                document.getElementById('extraBudgetInput').value = '';
-            }
+        // --- ACTIONS ---
+        function startAuction(id, base) { socket.emit('startAuction', { playerId: id, baseValue: base }); }
+        function bid(inc) { socket.emit('placeBid', { teamName: user.name, increment: inc }); }
+        function addBonus() { 
+            const amt = document.getElementById('bonusAmt').value;
+            if(amt) { socket.emit('addExtraBudget', amt); document.getElementById('bonusAmt').value = ''; }
         }
+        function addPlayer() {
+            const data = {
+                name: document.getElementById('pName').value,
+                strength: document.getElementById('pStrength').value,
+                cardType: document.getElementById('pType').value,
+                baseValue: document.getElementById('pBase').value,
+                status: 'Available'
+            };
+            socket.emit('addPlayer', data);
+            document.querySelectorAll('#adminPlayerForm input').forEach(i => i.value = '');
+        }
+
+        // --- CHAT ---
+        function sendChat() {
+            const text = document.getElementById('chatInput').value;
+            if(!text) return;
+            socket.emit('sendMessage', { sender: user.name, role: user.role, text: text });
+            document.getElementById('chatInput').value = '';
+        }
+
+        function addChatMessage(data) {
+            const box = document.getElementById('chatBox');
+            const div = document.createElement('div');
+            div.className = "p-2 bg-white/5 rounded-lg border-l-2 " + (data.role === 'admin' ? 'border-yellow-500' : 'border-neon');
+            div.innerHTML = `<p class="text-[10px] font-bold text-gray-500 uppercase">${data.sender}</p><p class="text-white">${data.text}</p>`;
+            box.appendChild(div);
+            box.scrollTop = box.scrollHeight;
+        }
+
+        if(user) startApp();
     </script>
 </body>
 </html>
