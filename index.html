@@ -183,6 +183,8 @@
     <script>
         // 1. UPDATE THIS TO YOUR RENDER URL
 const socket = io("https://nexus-go.onrender.com"); 
+        let currentPlayers = []; // This will store the live player list
+let currentTeams = [];   // This will store the live team list
 
 // 2. CREDENTIALS MAP (Matches your server.js teams)
 const ACCESS_MAP = {
@@ -247,14 +249,23 @@ function startApp() {
 
 // --- DATA RENDERING (With "undefined" fix) ---
 socket.on('initialData', (data) => {
+    currentPlayers = data.players; // Store it
+    currentTeams = data.teams;     // Store it
     renderPlayers(data.players);
     renderTeams(data.teams);
     renderAuction(data.state);
     if(data.chats) data.chats.forEach(addChatMessage);
 });
 
-socket.on('updatePlayers', renderPlayers);
-socket.on('updateTeams', renderTeams);
+socket.on('updatePlayers', (players) => {
+    currentPlayers = players; // Keep it updated
+    renderPlayers(players);
+});
+
+socket.on('updateTeams', (teams) => {
+    currentTeams = teams;     // Keep it updated
+    renderTeams(teams);
+});
 socket.on('updateAuction', renderAuction);
 
 function renderPlayers(players) {
@@ -424,66 +435,72 @@ function addPlayer() {
     document.getElementById('pStrength').value = '';
     document.getElementById('pBase').value = '';
 }
-        async function generatePDF() {
+        function generatePDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     
-    console.log("Generating Reliable PDF...");
+    // Check if we have data
+    if (currentPlayers.length === 0) {
+        alert("Data not loaded yet. Please wait a second.");
+        return;
+    }
+
+    console.log("Generating PDF from local memory...");
 
     try {
-        // 1. Fetch Fresh Data
-        const response = await fetch("https://your-app-name.onrender.com/api/data"); 
-        if (!response.ok) throw new Error("Server not responding");
-        const data = await response.json();
-
-        // 2. Process & Sort Sold Players (High to Low)
-        const soldPlayers = data.players
+        // 1. Process & Sort Sold Players (High to Low)
+        const soldPlayers = currentPlayers
             .filter(p => p.status === 'Sold')
             .map(p => {
-                const priceMatch = p.soldTo ? p.soldTo.match(/\d+/) : [0];
-                const priceNum = parseInt(priceMatch[0]) || 0;
+                // Extracts the number from "Team Name (150L)"
+                const priceMatch = p.soldTo ? p.soldTo.match(/\d+/) : null;
+                const priceNum = priceMatch ? parseInt(priceMatch[0]) : 0;
                 return [
                     p.name,
                     p.strength || 'N/A',
                     p.cardType || 'Standard',
                     `${priceNum} L`,
-                    p.soldTo.split(' (')[0] // Team Name
+                    p.soldTo ? p.soldTo.split(' (')[0] : 'N/A'
                 ];
             })
-            // Sort by the 4th column (Price) index 3
-            .sort((a, b) => parseInt(b[3]) - parseInt(a[3]));
+            // Sort by the Price column (index 3)
+            .sort((a, b) => {
+                return parseInt(b[3]) - parseInt(a[3]);
+            });
 
-        // 3. Header Text
+        // 2. Header
         doc.setFontSize(22);
         doc.setTextColor(16, 185, 129); // Nexus Green
         doc.text("NEXUS PES LEGENDS", 14, 20);
         
         doc.setFontSize(14);
         doc.setTextColor(100);
-        doc.text("Auction Carnival 2026 - Final Report", 14, 30);
+        doc.text("Official Auction Carnival 2026 Report", 14, 30);
         
         doc.setFontSize(10);
         doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 38);
+        doc.line(14, 42, 196, 42); // Header line
 
-        // 4. Draw Sold Players Table
+        // 3. Top Transfers Table
         doc.setFontSize(12);
         doc.setTextColor(0);
-        doc.text("1. TOP TRANSFERS (Ranked by Price)", 14, 50);
+        doc.text("1. TOP TRANSFERS (Ranked High to Low)", 14, 52);
         
         doc.autoTable({
-            startY: 55,
+            startY: 57,
             head: [['Player Name', 'STR', 'Type', 'Price', 'Purchased By']],
-            body: soldPlayers,
+            body: soldPlayers.length > 0 ? soldPlayers : [['No players sold yet', '-', '-', '-', '-']],
             headStyles: { fillColor: [16, 185, 129] },
-            theme: 'striped'
+            theme: 'striped',
+            margin: { top: 5 }
         });
 
-        // 5. Draw Team Budgets Table
-        const teamData = data.teams
+        // 4. Team Budgets Table
+        const teamData = currentTeams
             .sort((a, b) => b.budget - a.budget)
             .map(t => [t.name, `${t.budget} Lakhs`]);
 
-        const finalY = doc.lastAutoTable.finalY + 15;
+        const finalY = doc.lastAutoTable.finalY + 20;
         doc.text("2. FINAL TEAM FINANCES", 14, finalY);
         
         doc.autoTable({
@@ -494,6 +511,15 @@ function addPlayer() {
             theme: 'grid'
         });
 
+        // 5. Footer
+        const pageCount = doc.internal.getNumberOfPages();
+        for(let i = 1; i <= pageCount; i++) {
+            doc.setPage(i);
+            doc.setFontSize(8);
+            doc.setTextColor(150);
+            doc.text(`Nexus PES Legends 2026 - Page ${i} of ${pageCount}`, 14, 285);
+        }
+
         // 6. Save the PDF
         doc.save('Nexus_Auction_Report_2026.pdf');
 
@@ -501,7 +527,7 @@ function addPlayer() {
         console.error("PDF Error:", error);
         alert("Failed to generate PDF: " + error.message);
     }
-        }
+}
                 
         
     
