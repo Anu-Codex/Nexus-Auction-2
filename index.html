@@ -380,8 +380,8 @@
     function appendChat(chat, autoScroll) {
         const chatBox = document.getElementById('chatMessages');
         
-        // Remove "No messages yet" placeholder if it exists
-        if(chatBox.innerHTML.includes("No messages yet")) chatBox.innerHTML = '';
+        // Remove "No messages yet" text if it's the first message
+        if (chatBox.innerHTML.includes("No messages yet")) chatBox.innerHTML = '';
 
         // Format the time (e.g., 2:30 PM)
         const time = new Date(chat.timestamp).toLocaleTimeString(
@@ -418,6 +418,29 @@
         const purseDiv = document.getElementById('purseManagementSection');
         if (purseDiv) {
             purseDiv.style.display = (currentUser && currentUser.role === 'admin') ? 'block' : 'none';
+        }
+
+        // --- NEW: CHAT BOX LOGIN LOGIC ---
+        const chatInput = document.getElementById('chatInput');
+        const chatSendBtn = document.getElementById('chatSendBtn');
+
+        if (chatInput && chatSendBtn) {
+            if (currentUser) {
+                // Unlock Chat Box
+                chatInput.disabled = false;
+                chatSendBtn.disabled = false;
+                chatInput.placeholder = `Type a message as ${currentUser.team}...`; // Shows who you are!
+                chatSendBtn.style.background = 'var(--primary)';
+                chatSendBtn.style.cursor = 'pointer';
+            } else {
+                // Lock Chat Box (Logged out)
+                chatInput.disabled = true;
+                chatSendBtn.disabled = true;
+                chatInput.placeholder = 'Login as Admin or Captain to chat...';
+                chatSendBtn.style.background = 'var(--text-muted)';
+                chatSendBtn.style.cursor = 'not-allowed';
+            }
+        }
         }
         }
     function showLogin() { document.getElementById('loginModal').style.display = 'flex'; }
