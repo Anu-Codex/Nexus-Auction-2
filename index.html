@@ -161,419 +161,129 @@
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 <script>
     // 🔴🔴🔴 REPLACE THIS WITH YOUR RENDER APP URL 🔴🔴🔴
-    const BACKEND_URL = "https://nexus-go.onrender.com/"; 
+    // 1. CONNECT TO SERVER
+    const socket = io('https://nexus-go.onrender.com/'); // Replace with your actual Render URL
 
-    // Initialize Socket Connection to the Render Server
-    const socket = io(BACKEND_URL);
-    // --- USER DATABASE & AUTHENTICATION ---
+    // 2. DATA & USERS
     let currentUser = null;
+    let players = [];
+    let teams = {};
 
     const users = {
-        "admin@nexus.com": { password: "admin123", role: "admin", team: "Admin" },
-        "abhisek@nexus.com": { password: "abhisek123", role: "captain", team: "RISING FALCONS" },
-        "sukdeb@nexus.com": { password: "sukdeb123", role: "captain", team: "Team NRG" },
-        "avirup@nexus.com": { password: "avirup123", role: "captain", team: "Team SHAKTI" },
-        "sanju@nexus.com": { password: "sanju123", role: "captain", team: "Golden Knights FC" },
-        "trirup@nexus.com": { password: "trirup123", role: "captain", team: "Dominators" },
-        "gourav@nexus.com": { password: "gourav123", role: "captain", team: "Aura Farmer's" }
+        
     };
 
+    // 3. LOGIN & AUTH UI
     function login() {
-        // Look for input boxes on the screen
-        const emailInput = document.getElementById('emailInput') || document.getElementById('email');
-        const passInput = document.getElementById('passwordInput') || document.getElementById('password');
+        const email = prompt("Enter Email:");
+        const password = prompt("Enter Password:");
         
-        let email, password;
-
-        if (emailInput && passInput) {
-            // Get text from the boxes
-            email = emailInput.value.trim();
-            password = passInput.value.trim();
-        } else {
-            // Fallback: If text boxes are missing, use a browser popup instead!
-            email = prompt("Enter your Email:");
-            password = prompt("Enter your Password:");
-        }
-
-        if (!email || !password) return alert("⚠️ Please enter both email and password!");
-
         const user = users[email];
-        
         if (user && user.password === password) {
-            // Success! Save the user info
-            currentUser = { email: email, role: user.role, team: user.team };
-            
-            // Clear the input boxes
-            if (emailInput) emailInput.value = '';
-            if (passInput) passInput.value = '';
-
-            alert(`✅ Successfully logged in as ${user.team}`);
-            checkAuthUI(); // This unlocks the chat box and admin buttons!
+            currentUser = user;
+            alert("Login Successful!");
+            checkAuthUI();
         } else {
-            alert("❌ Invalid email or password!");
+            alert("Invalid Login!");
         }
     }
 
     function logout() {
         currentUser = null;
-        alert("Logged out successfully.");
-        checkAuthUI(); // This locks the chat box again
+        alert("Logged out.");
+        location.reload(); 
     }
 
-    const users = {
-        "admin@nexus.com": { password: "admin123", role: "admin", team: "Admin" },
+    function checkAuthUI() {
+        const loginBtn = document.getElementById('loginSection');
+        const logoutBtn = document.getElementById('logoutSection');
+        const userDisplay = document.getElementById('userDisplay');
+        const chatInput = document.getElementById('chatInput');
+        const chatSendBtn = document.getElementById('chatSendBtn');
+
+        if (currentUser) {
+            if(loginBtn) loginBtn.classList.add('hidden');
+            if(logoutBtn) logoutBtn.classList.remove('hidden');
+            if(userDisplay) userDisplay.innerText = currentUser.team;
+            
+            // Unlock Chat
+            if(chatInput) {
+                chatInput.disabled = false;
+                chatInput.placeholder = "Type message...";
+            }
+            if(chatSendBtn) chatSendBtn.disabled = false;
+      "admin@nexus.com": { password: "admin123", role: "admin", team: "Admin" },
         "abhisek@nexus.com": { password: "abhisek123", role: "captain", team: "RISING FALCONS" },
         "sukdeb@nexus.com": { password: "sukdeb123", role: "captain", team: "Team NRG" },
         "avirup@nexus.com": { password: "avirup123", role: "captain", team: "Team SHAKTI" },
         "sanju@nexus.com": { password: "sanju123", role: "captain", team: "Golden Knights FC" },
         "trirup@nexus.com": { password: "trirup123", role: "captain", team: "Dominators" },
-        "gourav@nexus.com": { password: "gourav123", role: "captain", team: "Aura Farmer's" }
-    };
-    
-    let currentUser = JSON.parse(sessionStorage.getItem('nexus_user')) || null;
-    let localPlayers =[];
-
-    // Format Lakhs/Crores
-    function formatCurrency(lakhs) {
-        if(lakhs >= 100) return (lakhs / 100).toFixed(2) + " Cr";
-        return lakhs + " L";
+        "gourav@nexus.com": { password: "gourav123", role: "captain", team: "Aura Farmer's" }  }
     }
 
-    function autoFillBaseValue() {
-        const cardVals = { "Standard": 1, "Show Time": 3, "Epic": 5 };
-        document.getElementById('newPValue').value = cardVals[document.getElementById('newPCard').value] || 10;
-    }
-
-    // Automatically receive data as soon as the server wakes up and connects
-    socket.on('initialData', (data) => {
-        localPlayers = data.players;
-        renderPlayers(data.players);
-        renderTeams(data.teams);
-        renderLiveAuction(data.state);
-        
-        // Load old chats
-        const chatBox = document.getElementById('chatMessages');
-        chatBox.innerHTML = ''; // clear loading text
-        if(data.chats && data.chats.length > 0) {
-            data.chats.forEach(chat => appendChat(chat, false));
-            chatBox.scrollTop = chatBox.scrollHeight; // scroll to bottom
-        } else {
-            chatBox.innerHTML = '<div style="text-align:center; color: var(--text-muted); font-size: 12px;">No messages yet. Be the first to chat!</div>';
-        }
-        
-        checkAuthUI();
+    // 4. PLAYER & PURSE RENDERING
+    socket.on('updateData', (data) => {
+        players = data.players;
+        teams = data.teams;
+        renderPlayers();
+        renderPurse();
     });
 
-    // Listen for new instant messages
-    socket.on('newMessage', (chat) => {
-        appendChat(chat, true);
-    });
-
-    // If the server disconnects, show the loading message again
-    socket.on('disconnect', () => {
-        document.getElementById('playerTableBody').innerHTML = `<tr><td colspan="7" style="text-align:center; color: var(--danger);">Lost connection to server. Reconnecting...</td></tr>`;
-    });
-
-    // Real-time Listeners
-    socket.on('updatePlayers', (p) => { localPlayers = p; renderPlayers(p); });
-    socket.on('updateTeams', (t) => renderTeams(t));
-    socket.on('updateAuction', (s) => renderLiveAuction(s));
-    // CATCH AND DISPLAY ERRORS FROM BACKEND
-    socket.on('errorMsg', (message) => {
-        alert("⚠️ AUCTION ERROR: " + message);
-    });
-    // CATCH SUCCESS MESSAGES FROM BACKEND
-    socket.on('alertMsg', (message) => {
-        alert(message);
-    });
-    
-
-    function renderPlayers(players) {
-        const tbody = document.getElementById('playerTableBody');
-        tbody.innerHTML = '';
-        players.forEach(p => {
-            // Updated Admin Buttons: Adds a Delete (🗑️) button to every player
-            let adminBtn = '';
-            if (p.status === 'Available') {
-                adminBtn += `<button onclick="startAuction('${p._id}', ${p.value})">Start Auction</button>`;
-            }
-            // The red delete button
-            adminBtn += `<button style="background: var(--danger); margin-left: 5px;" onclick="deletePlayer('${p._id}', '${p.name}')">🗑️</button>`;
-
-            tbody.innerHTML += `
-                <tr>
-                    <td><strong>${p.name}</strong></td>
-                    <td>${p.strength}</td>
-                    <td>${p.cardType}</td>
-                    <td>${formatCurrency(p.value)}</td>
-                    <td class="${p.status === 'Available' ? 'status-available' : 'status-sold'}">${p.status}</td>
-                    <td>${p.soldTo}</td>
-                    <td class="admin-only ${(!currentUser || currentUser.role !== 'admin') ? 'hidden' : ''}">${adminBtn}</td>
-                </tr>`;
-        });
+    function renderPlayers() {
+        const list = document.getElementById('playerList');
+        if (!list) return;
+        list.innerHTML = players.filter(p => !p.soldTo).map(p => `
+            <tr>
+                <td>${p.name}</td>
+                <td>${p.category}</td>
+                <td>${p.basePrice} L</td>
+                <td class="admin-only ${currentUser?.role === 'admin' ? '' : 'hidden'}">
+                    <button onclick="startAuction('${p.name}')">Auction</button>
+                </td>
+            </tr>
+        `).join('');
     }
 
-    function renderTeams(teams) {
-        const tbody = document.getElementById('teamTableBody');
-        tbody.innerHTML = '';
-        teams.forEach(t => {
-            const color = t.budget < 50 ? 'var(--danger)' : 'var(--primary)';
-            tbody.innerHTML += `<tr><td><strong>${t.name}</strong></td><td style="color:${color}; font-weight:bold;">${formatCurrency(t.budget)}</td></tr>`;
-        });
+    function renderPurse() {
+        const container = document.getElementById('teamStats');
+        if (!container) return;
+        container.innerHTML = Object.entries(teams).map(([name, data]) => `
+            <div class="stat-card">
+                <h3>${name}</h3>
+                <p>Budget: ${data.budget} L</p>
+                <p>Players: ${data.playerCount}/12</p>
+            </div>
+        `).join('');
     }
 
-    function renderLiveAuction(state) {
-        if (!state || !state.activePlayerId) {
-            document.getElementById('noAuctionActive').classList.remove('hidden');
-            document.getElementById('activeAuction').classList.add('hidden');
-            return;
-        }
-        const player = state.activePlayerId;
-        document.getElementById('noAuctionActive').classList.add('hidden');
-        document.getElementById('activeAuction').classList.remove('hidden');
-        document.getElementById('livePlayerName').innerText = player.name;
-        document.getElementById('livePlayerStrength').innerText = player.strength;
-        document.getElementById('livePlayerCard').innerText = player.cardType;
-        document.getElementById('liveBidAmount').innerText = formatCurrency(state.currentBid);
-        document.getElementById('liveBidderName').innerText = state.highestBidder || "None";
-    }
-
-    // Controls
-    function addPlayer() {
-        const btn = document.getElementById('addBtn');
-        const data = {
-            name: document.getElementById('newPName').value.trim(), 
-            strength: document.getElementById('newPStrength').value,
-            cardType: document.getElementById('newPCard').value, 
-            value: document.getElementById('newPValue').value,
-            status: "Available",
-            soldTo: "-"
-        };
-        
-        // Prevent adding empty players
-        if(!data.name || !data.strength || !data.value) {
-            return alert("Please fill out all player fields!");
-        }
-
-        // 1. Instantly change button to show loading state
-        btn.innerText = "Adding...";
-        btn.disabled = true;
-        btn.style.background = "#64748b";
-
-        // 2. Optimistic UI: Add to screen INSTANTLY without waiting for network delay
-        data._id = "temp_" + Date.now(); 
-        localPlayers.push(data);
-        renderPlayers(localPlayers);
-
-        // 3. Send to database in the background
-        socket.emit('addPlayer', data);
-        
-        // 4. Clear input boxes
-        document.getElementById('newPName').value = ''; 
-        document.getElementById('newPStrength').value = '';
-        
-        // 5. Reset button back to normal after a short delay
-        setTimeout(() => {
-            btn.innerText = "Add Player";
-            btn.disabled = false;
-            btn.style.background = "var(--primary)";
-        }, 800);
-    }
-
-    function startAuction(id, val) { 
-        // Safety lock: Prevent starting auction before DB finishes saving
-        if(id.startsWith("temp_")) {
-            return alert("Please wait a second for the player to save to the database before starting the auction.");
-        }
-        
-        // Show loading message on the dashboard while waiting for server
-        document.getElementById('noAuctionActive').innerHTML = "<p style='color: var(--warning); font-size: 20px;'>Starting auction... please wait.</p>";
-        
-        socket.emit('startAuction', {playerId: id, baseValue: Number(val)}); 
-    }
-    function deletePlayer(id, playerName) {
-        if(id.startsWith("temp_")) {
-            return alert("Please wait a second for the player to save to the database before deleting.");
-        }
-        
-        // Ask for confirmation so Admin doesn't delete someone by accident!
-        if(confirm(`Are you sure you want to delete ${playerName}?`)) {
-            socket.emit('deletePlayer', id);
-        }
-    }
-    // ADD BONUS BUDGET TO TEAMS (Admin Only & Crash-Proof)
-    function addBonusBudget() {
-        // SECURITY CHECK: Stop anyone who isn't the admin!
-        if (!currentUser || currentUser.role !== 'admin') {
-            return alert("⚠️ Unauthorized: Only the Admin can manage purses!");
-        }
-
-        const amount = Number(document.getElementById('extraBudgetAmt').value);
-        
-        if (!amount || amount <= 0 || amount > 1000) {
-            return alert("⚠️ Invalid amount! Please enter a realistic number (e.g., 50).");
-        }
-
-        if (confirm(`Are you sure you want to add ${amount} Lakhs into EVERY team's purse?`)) {
-            socket.emit('addExtraBudget', amount);
-            document.getElementById('extraBudgetAmt').value = ''; 
-        }
-    }
-    function placeBid(increment) {
-        // 1. Check if logged in
-        if (!currentUser) {
-            return alert("⚠️ You must be logged in to bid!");
-        }
-        // 2. Check if captain
-        if (currentUser.role !== 'captain') {
-            return alert("⚠️ Only Team Captains can place bids!");
-        }
-        
-        // 3. Send bid to server
-        socket.emit('placeBid', { teamName: currentUser.team, increment: increment });
-    }
-    function sellPlayer() { socket.emit('sellPlayer'); }
-    function cancelAuction() { socket.emit('cancelAuction'); }
-    
-
-    // Authentication Logic
-    function checkAuthUI() {
-        const loginSection = document.getElementById('loginSection');
-        const logoutSection = document.getElementById('logoutSection');
-        const userDisplay = document.getElementById('userDisplay');
-        
-        // 1. REVERTED TO THE ORIGINAL WORKING LOGIN DISPLAY LOGIC
-        if (currentUser) {
-            if (loginSection) loginSection.classList.add('hidden');
-            if (logoutSection) logoutSection.classList.remove('hidden');
-            if (userDisplay) userDisplay.innerText = currentUser.team;
-        } else {
-            if (loginSection) loginSection.classList.remove('hidden');
-            if (logoutSection) logoutSection.classList.add('hidden');
-            if (userDisplay) userDisplay.innerText = '';
-        }
-
-        // 2. Hide/Show Admin Buttons
-        const adminCols = document.querySelectorAll('.admin-only');
-        adminCols.forEach(el => {
-            if (currentUser && currentUser.role === 'admin') {
-                el.classList.remove('hidden');
-            } else {
-                el.classList.add('hidden');
-            }
-        });
-
-        // 3. Show Purse Management safely
-        const purseDiv = document.getElementById('purseManagementSection');
-        if (purseDiv) {
-            purseDiv.style.display = (currentUser && currentUser.role === 'admin') ? 'block' : 'none';
-        }
-
-        // 4. UNLOCK CHAT BOX
-        const chatInput = document.getElementById('chatInput');
-        const chatSendBtn = document.getElementById('chatSendBtn');
-
-        if (chatInput && chatSendBtn) {
-            if (currentUser) {
-                // Unlock
-
-        // SHOW PURSE MANAGEMENT ONLY FOR ADMIN:
-        const purseDiv = document.getElementById('purseManagementSection');
-        if (purseDiv) {
-            purseDiv.style.display = (currentUser && currentUser.role === 'admin') ? 'block' : 'none';
-        }
-
-        // CHAT BOX LOGIN LOGIC
-        const chatInput = document.getElementById('chatInput');
-        const chatSendBtn = document.getElementById('chatSendBtn');
-
-        if (chatInput && chatSendBtn) {
-            if (currentUser) {
-                chatInput.disabled = false;
-                chatSendBtn.disabled = false;
-                chatInput.placeholder = `Type a message as ${currentUser.team}...`;
-                chatSendBtn.style.background = 'var(--primary)';
-                chatSendBtn.style.cursor = 'pointer';
-            } else {
-                chatInput.disabled = true;
-                chatSendBtn.disabled = true;
-                chatInput.placeholder = 'Login as Admin or Captain to chat...';
-                chatSendBtn.style.background = 'var(--text-muted)';
-                chatSendBtn.style.cursor = 'not-allowed';
-            }
-        }
-    }
-
-    function showLogin() { document.getElementById('loginModal').style.display = 'flex'; }
-    function hideLogin() { document.getElementById('loginModal').style.display = 'none'; }
-    function processLogin() {
-        const email = document.getElementById('email').value.trim();
-        const pass = document.getElementById('password').value.trim();
-        if (users[email] && users[email].password === pass) {
-            currentUser = users[email];
-            sessionStorage.setItem('nexus_user', JSON.stringify(currentUser));
-            hideLogin(); checkAuthUI(); renderPlayers(localPlayers); 
-        } else { alert("Invalid Credentials!"); }
-    }
-    function logout() { currentUser = null; sessionStorage.removeItem('nexus_user'); checkAuthUI(); renderPlayers(localPlayers); }
-    // 1. RENDER A SINGLE CHAT MESSAGE
-    function appendChat(chat, autoScroll) {
-        const chatBox = document.getElementById('chatMessages');
-        
-        // Remove empty placeholder
-        if (chatBox.innerHTML.includes("No messages yet")) {
-            chatBox.innerHTML = '';
-        }
-
-        // Safe Time Formatter (HH:MM AM/PM)
-        const dateObj = new Date(chat.timestamp);
-        let hours = dateObj.getHours();
-        let minutes = dateObj.getMinutes();
-        const ampm = hours >= 12 ? 'PM' : 'AM';
-        hours = hours % 12;
-        hours = hours ? hours : 12; 
-        minutes = minutes < 10 ? '0' + minutes : minutes;
-        const timeStr = hours + ':' + minutes + ' ' + ampm;
-
-        // Admin is red with a crown, Captains are green
-        let senderColor = chat.role === 'admin' ? 'var(--danger)' : 'var(--primary)';
-        let senderName = chat.role === 'admin' ? '👑 Admin' : chat.sender;
-
-        // Create the message display
-        const msgDiv = document.createElement('div');
-        msgDiv.style.marginBottom = '8px';
-        msgDiv.style.lineHeight = '1.4';
-        
-        msgDiv.innerHTML = `
-            <span style="color: var(--text-muted); font-size: 11px;">[${timeStr}]</span> 
-            <strong style="color: ${senderColor}; font-size: 14px;">${senderName}:</strong> 
-            <span style="font-size: 14px; color: #fff;">${chat.text}</span>
-        `;
-        
-        chatBox.appendChild(msgDiv);
-
-        // Auto-scroll to the newest message
-        if (autoScroll) {
-            chatBox.scrollTop = chatBox.scrollHeight;
-        }
-    }
-
-    // 2. SEND A CHAT MESSAGE
+    // 5. CHAT FUNCTIONS
     function sendChat() {
-        if (!currentUser) return;
-        
         const input = document.getElementById('chatInput');
+        if (!input || !currentUser) return;
         const text = input.value.trim();
-        
-        if (text !== '') {
+        if (text) {
             socket.emit('sendMessage', {
                 sender: currentUser.team,
                 role: currentUser.role,
                 text: text
             });
-            input.value = ''; // clear input box
+            input.value = '';
         }
     }
+
+    socket.on('receiveMessage', (chat) => {
+        const chatBox = document.getElementById('chatMessages');
+        if (!chatBox) return;
+        const msg = document.createElement('div');
+        msg.innerHTML = `<strong>${chat.sender}:</strong> ${chat.text}`;
+        chatBox.appendChild(msg);
+        chatBox.scrollTop = chatBox.scrollHeight;
+    });
+
+    // Initialize
+    window.onload = checkAuthUI;
+
+                
 </script>
 </body>
 </html>
