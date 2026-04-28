@@ -192,7 +192,23 @@
         renderPlayers(data.players);
         renderTeams(data.teams);
         renderLiveAuction(data.state);
+        
+        // Load old chats
+        const chatBox = document.getElementById('chatMessages');
+        chatBox.innerHTML = ''; // clear loading text
+        if(data.chats && data.chats.length > 0) {
+            data.chats.forEach(chat => appendChat(chat, false));
+            chatBox.scrollTop = chatBox.scrollHeight; // scroll to bottom
+        } else {
+            chatBox.innerHTML = '<div style="text-align:center; color: var(--text-muted); font-size: 12px;">No messages yet. Be the first to chat!</div>';
+        }
+        
         checkAuthUI();
+    });
+
+    // Listen for new instant messages
+    socket.on('newMessage', (chat) => {
+        appendChat(chat, true);
     });
 
     // If the server disconnects, show the loading message again
