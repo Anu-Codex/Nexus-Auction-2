@@ -6,6 +6,8 @@
     <title>Nexus PES Legends | Auction 2026</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    <!-- Library to convert HTML to PDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&display=swap');
@@ -142,6 +144,9 @@
                             </div>
                         </div>
                     </div>
+                    <button onclick="generatePDF()" class="bg-red-700 hover:bg-red-800 text-white px-4 py-2 rounded text-sm font-bold shadow-lg transition flex items-center gap-2">
+    <i class="fa-solid fa-file-pdf"></i> Export Auction Report
+                    </button>
 
                     <!-- Chat Window -->
 <div class="glass rounded-2xl border border-white/5 h-[400px] flex flex-col overflow-hidden">
@@ -418,6 +423,72 @@ function addPlayer() {
     document.getElementById('pStrength').value = '';
     document.getElementById('pBase').value = '';
 }
+        async function generatePDF() {
+    // 1. Fetch the latest data from your API
+    const response = await fetch("https://your-app-name.onrender.com/api/data");
+    const data = await response.json();
+
+    // 2. Create a temporary container for the PDF content
+    const element = document.createElement('div');
+    element.style.padding = '20px';
+    element.style.color = '#000';
+    element.style.backgroundColor = '#fff';
+    element.style.fontFamily = 'Arial, sans-serif';
+
+    // 3. Build the Report HTML
+    let html = `
+        <h1 style="text-align: center; color: #064e3b;">Nexus PES Legends Auction 2026</h1>
+        <p style="text-align: center; font-size: 12px;">Official Tournament Report | Generated on: ${new Date().toLocaleString()}</p>
+        <hr>
+        
+        <h3>1. Final Team Budgets</h3>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+            <tr style="background-color: #f2f2f2;">
+                <th style="border: 1px solid #ddd; padding: 8px;">Team Name</th>
+                <th style="border: 1px solid #ddd; padding: 8px;">Remaining Budget (L)</th>
+            </tr>
+            ${data.teams.map(t => `
+                <tr>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${t.name}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${t.budget} L</td>
+                </tr>
+            `).join('')}
+        </table>
+
+        <h3>2. Sold Players List</h3>
+        <table style="width: 100%; border-collapse: collapse;">
+            <tr style="background-color: #f2f2f2;">
+                <th style="border: 1px solid #ddd; padding: 8px;">Player Name</th>
+                <th style="border: 1px solid #ddd; padding: 8px;">Strength</th>
+                <th style="border: 1px solid #ddd; padding: 8px;">Sold To (Price)</th>
+            </tr>
+            ${data.players.filter(p => p.status === 'Sold').map(p => `
+                <tr>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${p.name}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${p.strength}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${p.soldTo}</td>
+                </tr>
+            `).join('')}
+        </table>
+
+        <h3>3. Unsold Players</h3>
+        <p>${data.players.filter(p => p.status === 'Available').map(p => p.name).join(', ') || 'None'}</p>
+    `;
+
+    element.innerHTML = html;
+
+    // 4. PDF Configuration
+    const opt = {
+        margin:       1,
+        filename:     'Nexus_Auction_Report_2026.pdf',
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2 },
+        jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+    };
+
+    // 5. Generate and Download
+    html2pdf().set(opt).from(element).save();
+        }
         // --- CHAT SYSTEM ---
 
 // 1. Listen for new messages from server
