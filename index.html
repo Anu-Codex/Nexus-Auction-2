@@ -424,99 +424,128 @@ function addPlayer() {
     document.getElementById('pBase').value = '';
 }
         async function generatePDF() {
-    console.log("Generating Report...");
+    console.log("Starting PDF generation...");
     
+    // 1. Show a loading state (Optional but helpful)
+    const btn = event.target;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> Generating...';
+    btn.disabled = true;
+
     try {
-        // 1. Get data (Automatically uses the same server the website is connected to)
-        // If your Render URL is https://nexus.onrender.com, use that here:
+        // 2. Fetch Fresh Data (Ensure this URL is correct)
         const response = await fetch("https://nexus-go.onrender.com/api/data"); 
+        if (!response.ok) throw new Error("Could not reach server");
         const data = await response.json();
 
-        // 2. Prepare and Sort Sold Players (High to Low)
-        const soldPlayers = data.players.filter(p => p.status === 'Sold').map(p => {
-            // This part extracts the number from "Team Name (150L)"
-            const priceMatch = p.soldTo ? p.soldTo.match(/\d+/) : [0];
-            const priceValue = parseInt(priceMatch[0]) || 0;
-            return { ...p, numericPrice: priceValue };
-        });
+        // 3. Process & Sort Sold Players (High to Low)
+        const soldPlayers = data.players
+            .filter(p => p.status === 'Sold')
+            .map(p => {
+                const priceMatch = p.soldTo ? p.soldTo.match(/\d+/) : [0];
+                return { ...p, price: parseInt(priceMatch[0]) || 0 };
+            })
+            .sort((a, b) => b.price - a.price);
 
-        // SORT: Highest price first
-        soldPlayers.sort((a, b) => b.numericPrice - a.numericPrice);
+        // 4. Create a Temporary Visible Container
+        const reportContainer = document.createElement('div');
+        reportContainer.id = "pdf-report-temp";
+        // Place it off-screen so user doesn't see it
+        reportContainer.style.position = 'absolute';
+        reportContainer.style.left = '-9999px';
+        reportContainer.style.top = '0';
+        reportContainer.style.width = '800px'; // Standard A4 width-ish
+        reportContainer.style.backgroundColor = '#ffffff';
+        reportContainer.style.color = '#000000';
+        reportContainer.style.padding = '40px';
+        reportContainer.style.fontFamily = 'Arial, sans-serif';
 
-        // 3. Create the PDF Layout
-        const element = document.createElement('div');
-        element.style.padding = '30px';
-        element.style.color = '#000';
-        element.style.backgroundColor = '#fff';
-
-        element.innerHTML = `
-            <div style="text-align: center; border-bottom: 2px solid #10b981; padding-bottom: 10px; margin-bottom: 20px;">
-                <h1 style="margin: 0; color: #064e3b;">NEXUS PES LEGENDS</h1>
-                <h2 style="margin: 5px 0; font-size: 18px;">Official Auction Carnival 2026 Report</h2>
-                <p style="font-size: 10px; color: #666;">Generated: ${new Date().toLocaleString()}</p>
+        // 5. Build the HTML Content
+        reportContainer.innerHTML = `
+            <div style="border-bottom: 3px solid #10b981; padding-bottom: 20px; margin-bottom: 30px;">
+                <h1 style="font-size: 28px; margin: 0; color: #064e3b; text-transform: uppercase;">Nexus PES Legends</h1>
+                <h2 style="font-size: 18px; margin: 5px 0; color: #374151;">Auction Carnival 2026 - Final Report</h2>
+                <p style="font-size: 12px; color: #6b7280; margin: 0;">Date: ${new Date().toLocaleString()}</p>
             </div>
 
-            <h3 style="background: #f4f4f4; padding: 5px;">1. Top Buys (Highest to Lowest)</h3>
-            <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
+            <h3 style="color: #065f46; border-left: 5px solid #10b981; padding-left: 10px; margin-bottom: 15px;">1. TOP TRANSFERS (Highest to Lowest)</h3>
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 40px; font-size: 13px;">
                 <thead>
-                    <tr style="background: #10b981; color: white;">
-                        <th style="border: 1px solid #ddd; padding: 10px; text-align: left;">Player Name</th>
-                        <th style="border: 1px solid #ddd; padding: 10px; text-align: left;">Card Type</th>
-                        <th style="border: 1px solid #ddd; padding: 10px; text-align: center;">Sold Price</th>
-                        <th style="border: 1px solid #ddd; padding: 10px; text-align: left;">Purchased By</th>
+                    <tr style="background-color: #f3f4f6; text-align: left;">
+                        <th style="border: 1px solid #d1d5db; padding: 12px;">Rank</th>
+                        <th style="border: 1px solid #d1d5db; padding: 12px;">Player Name</th>
+                        <th style="border: 1px solid #d1d5db; padding: 12px;">Strength</th>
+                        <th style="border: 1px solid #d1d5db; padding: 12px; text-align: center;">Price</th>
+                        <th style="border: 1px solid #d1d5db; padding: 12px;">Purchased By</th>
                     </tr>
                 </thead>
                 <tbody>
-                    ${soldPlayers.map(p => `
+                    ${soldPlayers.length > 0 ? soldPlayers.map((p, index) => `
                         <tr>
-                            <td style="border: 1px solid #ddd; padding: 10px; font-weight: bold;">${p.name}</td>
-                            <td style="border: 1px solid #ddd; padding: 10px;">${p.cardType || 'Standard'}</td>
-                            <td style="border: 1px solid #ddd; padding: 10px; text-align: center; color: #b45309; font-weight: bold;">${p.numericPrice} Lakhs</td>
-                            <td style="border: 1px solid #ddd; padding: 10px;">${p.soldTo.split(' (')[0]}</td>
+                            <td style="border: 1px solid #d1d5db; padding: 10px; text-align: center;">${index + 1}</td>
+                            <td style="border: 1px solid #d1d5db; padding: 10px; font-weight: bold;">${p.name}</td>
+                            <td style="border: 1px solid #d1d5db; padding: 10px;">${p.strength}</td>
+                            <td style="border: 1px solid #d1d5db; padding: 10px; text-align: center; color: #b45309; font-weight: bold;">${p.price} Lakhs</td>
+                            <td style="border: 1px solid #d1d5db; padding: 10px;">${p.soldTo.split(' (')[0]}</td>
                         </tr>
-                    `).join('')}
+                    `).join('') : '<tr><td colspan="5" style="text-align:center; padding: 20px;">No players sold yet.</td></tr>'}
                 </tbody>
             </table>
 
-            <h3 style="background: #f4f4f4; padding: 5px;">2. Final Team Finances</h3>
-            <table style="width: 100%; border-collapse: collapse;">
+            <h3 style="color: #065f46; border-left: 5px solid #10b981; padding-left: 10px; margin-bottom: 15px;">2. TEAM PURSE SUMMARY</h3>
+            <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
                 <thead>
-                    <tr style="background: #333; color: white;">
-                        <th style="border: 1px solid #ddd; padding: 10px; text-align: left;">Team Name</th>
-                        <th style="border: 1px solid #ddd; padding: 10px; text-align: right;">Remaining Purse</th>
+                    <tr style="background-color: #1f2937; color: white; text-align: left;">
+                        <th style="border: 1px solid #374151; padding: 12px;">Team Name</th>
+                        <th style="border: 1px solid #374151; padding: 12px; text-align: right;">Remaining Purse (L)</th>
                     </tr>
                 </thead>
                 <tbody>
                     ${data.teams.sort((a,b) => b.budget - a.budget).map(t => `
                         <tr>
-                            <td style="border: 1px solid #ddd; padding: 10px;">${t.name}</td>
-                            <td style="border: 1px solid #ddd; padding: 10px; text-align: right; font-weight: bold;">${t.budget} L</td>
+                            <td style="border: 1px solid #d1d5db; padding: 10px; font-weight: bold;">${t.name}</td>
+                            <td style="border: 1px solid #d1d5db; padding: 10px; text-align: right; color: #059669; font-weight: bold;">${t.budget} L</td>
                         </tr>
                     `).join('')}
                 </tbody>
             </table>
-            
-            <div style="margin-top: 50px; text-align: center; font-size: 10px; color: #999;">
-                Nexus PES Legends Community &copy; 2026 - Official Document
+
+            <div style="margin-top: 60px; text-align: center; border-top: 1px solid #eee; padding-top: 20px;">
+                <p style="font-size: 10px; color: #9ca3af;">This is an officially generated document for the Nexus PES Legends Gaming Community.</p>
             </div>
         `;
 
-        // 4. Generate the File
+        // 6. Append to DOM temporarily
+        document.body.appendChild(reportContainer);
+
+        // 7. PDF Configuration
         const opt = {
-            margin: 0.5,
-            filename: `Nexus_Auction_Report_2026.pdf`,
-            image: { type: 'jpeg', quality: 1 },
-            html2canvas: { scale: 2, logging: false, useCORS: true },
-            jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+            margin:       0.3,
+            filename:     'Nexus_Auction_Final_Report.pdf',
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2, useCORS: true, letterRendering: true },
+            jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
         };
 
-        html2pdf().set(opt).from(element).save();
+        // 8. Generate with a small timeout to ensure rendering
+        setTimeout(() => {
+            html2pdf().set(opt).from(reportContainer).save().then(() => {
+                // Cleanup
+                document.body.removeChild(reportContainer);
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            });
+        }, 500);
 
     } catch (error) {
         console.error("PDF Error:", error);
-        alert("Failed to generate PDF. Make sure your Render server is awake!");
+        alert("Error: " + error.message);
+        btn.innerHTML = originalText;
+        btn.disabled = false;
     }
         }
+        
+                
         
     
         // --- CHAT SYSTEM ---
