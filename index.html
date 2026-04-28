@@ -402,6 +402,12 @@ function handleChatKey(e) {
         sendChat();
     }
 }
+function confirmDelete(id, name) {
+    if (confirm(`⚠️ WARNING: Are you sure you want to permanently delete "${name}" from the database?`)) {
+        console.log("Deleting player:", id);
+        socket.emit('deletePlayer', id);
+    }
+        }
 
 // 3. Send message to server
 function sendChat() {
