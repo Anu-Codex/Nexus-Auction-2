@@ -2,288 +2,181 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=1024">
-    <title>Nexus PES Legends - Auction 2026</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus Auction Live</title>
+    <!-- 1. SOCKET.IO LIBRARY - DO NOT REMOVE -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <style>
-        :root { --primary: #00ff88; --bg-dark: #0f172a; --bg-panel: #1e293b; --text-light: #f8fafc; --danger: #ef4444; --warning: #f59e0b; }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
-        body { background-color: var(--bg-dark); color: var(--text-light); }
-        header { background: #020617; padding: 20px; border-bottom: 2px solid var(--primary); display: flex; justify-content: space-between; align-items: center; }
-        .logo { font-size: 24px; font-weight: bold; color: var(--primary); }
-        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
-        .panel { background: var(--bg-panel); padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
-        .panel h2 { margin-bottom: 15px; color: var(--primary); border-bottom: 1px solid #334155; padding-bottom: 10px; }
-        button { background: var(--primary); color: #000; border: none; padding: 10px 15px; border-radius: 4px; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        button:hover { opacity: 0.8; }
-        button.danger { background: var(--danger); color: white; }
-        input, select { width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 4px; border: 1px solid #334155; background: #0f172a; color: white; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #334155; }
-        th { background: #020617; color: var(--primary); }
-        .status-available { color: var(--primary); }
-        .status-sold { color: var(--danger); }
-        .live-auction { text-align: center; padding: 30px; background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%); border: 2px solid var(--primary); border-radius: 10px;}
-        .current-bid { font-size: 48px; color: var(--primary); font-weight: bold; margin: 15px 0; }
-        #loginModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; z-index: 1000; }
-        .modal-content { background: var(--bg-panel); padding: 30px; border-radius: 8px; width: 350px; }
+        :root { --primary: #00d2ff; --bg: #0f0c29; --card: #1b1b2f; --text: #ffffff; }
+        body { background: var(--bg); color: var(--text); font-family: sans-serif; padding: 20px; }
         .hidden { display: none !important; }
-        .grid-2 { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
-        .flex { display: flex; gap: 10px; }
+        .grid { display: grid; grid-template-columns: 1fr 300px; gap: 20px; }
+        table { width: 100%; border-collapse: collapse; background: var(--card); }
+        th, td { padding: 12px; border: 1px solid #333; text-align: left; }
+        .stat-card { background: var(--card); padding: 15px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid var(--primary); }
+        #chatBox { background: var(--card); height: 300px; border: 1px solid #333; display: flex; flex-direction: column; }
+        #chatMessages { flex: 1; overflow-y: auto; padding: 10px; font-size: 14px; }
+        .input-area { display: flex; padding: 10px; background: #111; }
+        input { flex: 1; padding: 8px; background: #222; color: white; border: 1px solid #444; }
+        button { padding: 8px 15px; background: var(--primary); border: none; color: black; font-weight: bold; cursor: pointer; }
+        button:disabled { background: #555; cursor: not-allowed; }
     </style>
 </head>
 <body>
 
-    <header>
-        <div class="logo">🎮 Nexus PES Legends</div>
-        <div id="authArea">
-            <span id="userInfo" style="margin-right: 15px;"></span>
-            <button id="loginBtn" onclick="showLogin()">Login</button>
-            <button id="logoutBtn" onclick="logout()" class="hidden danger">Logout</button>
-        </div>
-    </header>
-
-    <div class="container">
-        <h1 style="text-align: center; margin: 20px 0; font-size: 36px;">🏆 Nexus Auction Carnival 2026</h1>
-
-        <div class="grid-2">
-            <!-- LIVE AUCTION -->
-            <div class="panel live-auction">
-                <h2>🔴 LIVE AUCTION</h2>
-                <div id="noAuctionActive"><p style="font-size: 20px; color: #94a3b8;">Waiting for Admin...</p></div>
-                
-                <div id="activeAuction" class="hidden">
-                    <div style="font-size: 32px; font-weight: bold; color: #fff;" id="livePlayerName">-</div>
-                    <div>Strength: <span id="livePlayerStrength"></span> | Card: <span id="livePlayerCard"></span></div>
-                    
-                    <div class="current-bid">Bid: <span id="liveBidAmount">0</span></div>
-                    <div style="font-size: 20px; color: var(--warning); margin-bottom: 20px;">Highest Bidder: <span id="liveBidderName">None</span></div>
-
-                    <div id="captainControls" class="hidden" style="margin-top: 15px;">
-                        <button onclick="placeBid(1)">Bid +1 Lakh</button>
-                        <button onclick="placeBid(5)">Bid +5 Lakhs</button>
-                        <button onclick="placeBid(10)">Bid +10 Lakhs</button>
-                    </div>
-
-                    <div id="adminLiveControls" class="hidden" style="margin-top: 15px;">
-                        <button class="danger" onclick="sellPlayer()">🔨 Sell Player</button>
-                        <button style="background: #64748b;" onclick="cancelAuction()">Cancel</button>
-                    </div>
-                </div>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h1>NEXUS AUCTION</h1>
+        <div id="authSection">
+            <div id="loginSection">
+                <button onclick="login()">LOGIN AS CAPTAIN/ADMIN</button>
             </div>
-
-            <!-- BUDGETS -->
-            <div class="panel">
-                <h2>💰 Team Budgets</h2>
-                <table>
-                    <thead><tr><th>Team</th><th>Purse Left</th></tr></thead>
-                    <tbody id="teamTableBody"></tbody>
-                </table>
+            <div id="logoutSection" class="hidden">
+                <span id="userDisplay"></span>
+                <button onclick="logout()" style="background: #ff4d4d;">LOGOUT</button>
             </div>
-        </div>
-
-        <!-- ADMIN DASHBOARD -->
-        <div id="adminDashboard" class="panel hidden">
-            <h2>⚙️ Add New Player</h2>
-            <div class="flex">
-                <input type="text" id="newPName" placeholder="Player Name" required>
-                <input type="number" id="newPStrength" placeholder="Strength" required>
-                <select id="newPCard" onchange="autoFillBaseValue()">
-                    <option value="Standard">Standard (1L)</option>
-                    <option value="Show Time">Show Time (3L)</option>
-                    <option value="Epic">Epic (5L)</option>
-                </select>
-                <input type="number" id="newPValue" value="10" placeholder="Base Value (Lakhs)" required>
-                <button id="addBtn" onclick="addPlayer()">Add Player</button>
-            </div>
-        </div>
-        <!-- PURSE MANAGEMENT (HIDDEN BY DEFAULT) -->
-    <div id="purseManagementSection" style="display: none; margin-top: 20px; padding-top: 15px; border-top: 1px solid var(--border);">
-        <h3 style="margin-bottom: 10px; color: var(--secondary);">💰 Purse Management</h3>
-        <input type="number" id="extraBudgetAmt" placeholder="Amount to add (e.g. 50)" required>
-        <button onclick="addBonusBudget()" style="background: #10b981;">Add Bonus to All Teams</button>
-        <p style="font-size: 12px; color: var(--text-muted); margin-top: 5px;">*This adds the amount to their current balance without affecting sold players.</p>
-    </div>
-        <!-- LIVE CHAT BOX -->
-    <div style="margin-top: 30px; margin-bottom: 20px; background: var(--bg-card); border-radius: 8px; border: 1px solid var(--border); overflow: hidden;">
-        
-        <!-- Chat Header -->
-        <div style="background: var(--surface); padding: 10px 15px; border-bottom: 1px solid var(--border);">
-            <h3 style="margin: 0; color: var(--primary); font-size: 16px;">💬 Live Auction Chat</h3>
-        </div>
-        
-        <!-- Chat Message Screen (Where messages appear) -->
-        <div id="chatMessages" style="height: 250px; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; background: rgba(0,0,0,0.2);">
-            <div style="text-align:center; color: var(--text-muted); font-size: 12px;">Loading previous chats...</div>
-        </div>
-        
-        <!-- Chat Input Area (The part that was missing!) -->
-        <div style="padding: 10px; display: flex; gap: 10px; background: var(--surface); border-top: 1px solid var(--border);">
-            
-            <input type="text" id="chatInput" placeholder="Login as Admin or Captain to chat..." disabled onkeypress="if(event.key === 'Enter') sendChat()" style="flex: 1; border: 1px solid var(--border); padding: 10px; border-radius: 5px; background: #2a2a35; color: white; font-size: 14px;">
-            
-            <button id="chatSendBtn" onclick="sendChat()" disabled style="background: var(--text-muted); color: #fff; cursor: not-allowed; padding: 10px 20px; border-radius: 5px; font-weight: bold; border: none;">Send</button>
-            
         </div>
     </div>
-        <!-- PLAYER LIST -->
-        <div class="panel">
-            <h2>📋 Available Player List</h2>
+
+    <div id="purseDisplay" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px;">
+        <!-- Purse data loads here -->
+    </div>
+
+    <div class="grid">
+        <div>
+            <h3>Available Players</h3>
             <table>
                 <thead>
-                    <tr><th>Name</th><th>Strength</th><th>Card Type</th><th>Base Value</th><th>Status</th><th>Sold To</th><th class="admin-only hidden">Action</th></tr>
+                    <tr>
+                        <th>Name</th>
+                        <th>Category</th>
+                        <th>Base Price</th>
+                    </tr>
                 </thead>
-                <tbody id="teamTableBody">
-    <tr><td colspan="2" style="text-align:center; color: var(--warning);">Connecting to database...</td></tr>
-                </tbody>
-                <tbody id="playerTableBody">
-    <tr><td colspan="7" style="text-align:center; color: var(--warning);">Waking up server... (This takes ~30 seconds on the first visit)</td></tr>
+                <tbody id="playerList">
+                    <tr><td colspan="3">Waiting for server data...</td></tr>
                 </tbody>
             </table>
         </div>
-    </div>
 
-    <!-- Login -->
-    <div id="loginModal">
-        <div class="modal-content">
-            <h2>Secure Login</h2>
-            <p style="font-size: 12px; margin-bottom: 15px; color: var(--warning);">
-                Admin: Anubhav Sarkar<br>
-                Captains: Abhishek | Avirup | Trirup | Sukdeb | Sanju | Gourav
-            </p>
-            <input type="email" id="email" placeholder="Email Address">
-            <input type="password" id="password" placeholder="Password">
-            <button onclick="processLogin()" style="width: 100%;">Login</button>
-            <button onclick="hideLogin()" style="width: 100%; margin-top: 10px; background: #64748b;">Cancel</button>
+        <div>
+            <h3>Live Chat</h3>
+            <div id="chatBox">
+                <div id="chatMessages"></div>
+                <div class="input-area">
+                    <input type="text" id="chatInput" placeholder="Login to chat..." disabled>
+                    <button id="chatSendBtn" onclick="sendChat()" disabled>Send</button>
+                </div>
+            </div>
         </div>
     </div>
 
-<!-- IMPORTANT: Use the Socket.io CDN for Vercel! -->
-<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-<script>
-    // 🔴🔴🔴 REPLACE THIS WITH YOUR RENDER APP URL 🔴🔴🔴
-    // 1. CONNECT TO SERVER
-    const socket = io('https://nexus-go.onrender.com/'); // Replace with your actual Render URL
+    <script>
+        // REPLACE THIS URL WITH YOUR ACTUAL RENDER BACKEND URL
+        const BACKEND_URL = "https://your-backend-url.onrender.com";
+        const socket = io(BACKEND_URL);
 
-    // 2. DATA & USERS
-    let currentUser = null;
-    let players = [];
-    let teams = {};
+        let currentUser = null;
 
-    const users = {
-        
-    };
-
-    // 3. LOGIN & AUTH UI
-    function login() {
-        const email = prompt("Enter Email:");
-        const password = prompt("Enter Password:");
-        
-        const user = users[email];
-        if (user && user.password === password) {
-            currentUser = user;
-            alert("Login Successful!");
-            checkAuthUI();
-        } else {
-            alert("Invalid Login!");
-        }
-    }
-
-    function logout() {
-        currentUser = null;
-        alert("Logged out.");
-        location.reload(); 
-    }
-
-    function checkAuthUI() {
-        const loginBtn = document.getElementById('loginSection');
-        const logoutBtn = document.getElementById('logoutSection');
-        const userDisplay = document.getElementById('userDisplay');
-        const chatInput = document.getElementById('chatInput');
-        const chatSendBtn = document.getElementById('chatSendBtn');
-
-        if (currentUser) {
-            if(loginBtn) loginBtn.classList.add('hidden');
-            if(logoutBtn) logoutBtn.classList.remove('hidden');
-            if(userDisplay) userDisplay.innerText = currentUser.team;
-            
-            // Unlock Chat
-            if(chatInput) {
-                chatInput.disabled = false;
-                chatInput.placeholder = "Type message...";
-            }
-            if(chatSendBtn) chatSendBtn.disabled = false;
-      "admin@nexus.com": { password: "admin123", role: "admin", team: "Admin" },
+        // USER DATABASE
+        const users = {
+            "admin@nexus.com": { password: "admin123", role: "admin", team: "Admin" },
         "abhisek@nexus.com": { password: "abhisek123", role: "captain", team: "RISING FALCONS" },
         "sukdeb@nexus.com": { password: "sukdeb123", role: "captain", team: "Team NRG" },
         "avirup@nexus.com": { password: "avirup123", role: "captain", team: "Team SHAKTI" },
         "sanju@nexus.com": { password: "sanju123", role: "captain", team: "Golden Knights FC" },
         "trirup@nexus.com": { password: "trirup123", role: "captain", team: "Dominators" },
         "gourav@nexus.com": { password: "gourav123", role: "captain", team: "Aura Farmer's" }  }
-    }
+        };
 
-    // 4. PLAYER & PURSE RENDERING
-    socket.on('updateData', (data) => {
-        players = data.players;
-        teams = data.teams;
-        renderPlayers();
-        renderPurse();
-    });
+        // 1. DATA LOADING
+        socket.on('updateData', (data) => {
+            console.log("Data Received:", data);
+            renderPlayers(data.players);
+            renderPurse(data.teams);
+        });
 
-    function renderPlayers() {
-        const list = document.getElementById('playerList');
-        if (!list) return;
-        list.innerHTML = players.filter(p => !p.soldTo).map(p => `
-            <tr>
-                <td>${p.name}</td>
-                <td>${p.category}</td>
-                <td>${p.basePrice} L</td>
-                <td class="admin-only ${currentUser?.role === 'admin' ? '' : 'hidden'}">
-                    <button onclick="startAuction('${p.name}')">Auction</button>
-                </td>
-            </tr>
-        `).join('');
-    }
-
-    function renderPurse() {
-        const container = document.getElementById('teamStats');
-        if (!container) return;
-        container.innerHTML = Object.entries(teams).map(([name, data]) => `
-            <div class="stat-card">
-                <h3>${name}</h3>
-                <p>Budget: ${data.budget} L</p>
-                <p>Players: ${data.playerCount}/12</p>
-            </div>
-        `).join('');
-    }
-
-    // 5. CHAT FUNCTIONS
-    function sendChat() {
-        const input = document.getElementById('chatInput');
-        if (!input || !currentUser) return;
-        const text = input.value.trim();
-        if (text) {
-            socket.emit('sendMessage', {
-                sender: currentUser.team,
-                role: currentUser.role,
-                text: text
-            });
-            input.value = '';
+        function renderPlayers(players) {
+            const list = document.getElementById('playerList');
+            if (!players || players.length === 0) {
+                list.innerHTML = "<tr><td colspan='3'>No players available</td></tr>";
+                return;
+            }
+            list.innerHTML = players.filter(p => !p.soldTo).map(p => `
+                <tr>
+                    <td>${p.name}</td>
+                    <td>${p.category}</td>
+                    <td>${p.basePrice} L</td>
+                </tr>
+            `).join('');
         }
-    }
 
-    socket.on('receiveMessage', (chat) => {
-        const chatBox = document.getElementById('chatMessages');
-        if (!chatBox) return;
-        const msg = document.createElement('div');
-        msg.innerHTML = `<strong>${chat.sender}:</strong> ${chat.text}`;
-        chatBox.appendChild(msg);
-        chatBox.scrollTop = chatBox.scrollHeight;
-    });
+        function renderPurse(teams) {
+            const container = document.getElementById('purseDisplay');
+            if (!teams) return;
+            container.innerHTML = Object.entries(teams).map(([name, data]) => `
+                <div class="stat-card">
+                    <strong>${name}</strong><br>
+                    Budget: ${data.budget} L | Players: ${data.playerCount}
+                </div>
+            `).join('');
+        }
 
-    // Initialize
-    window.onload = checkAuthUI;
+        // 2. LOGIN LOGIC
+        function login() {
+            const email = prompt("Email:");
+            const pass = prompt("Password:");
+            const user = users[email];
 
+            if (user && user.password === pass) {
+                currentUser = user;
+                alert("Welcome " + user.team);
+                updateUI();
+            } else {
+                alert("Wrong login!");
+            }
+        }
+
+        function logout() {
+            currentUser = null;
+            location.reload();
+        }
+
+        function updateUI() {
+            if (currentUser) {
+                document.getElementById('loginSection').classList.add('hidden');
+                document.getElementById('logoutSection').classList.remove('hidden');
+                document.getElementById('userDisplay').innerText = currentUser.team + " ";
                 
-</script>
+                // Unlock Chat
+                document.getElementById('chatInput').disabled = false;
+                document.getElementById('chatInput').placeholder = "Type as " + currentUser.team;
+                document.getElementById('chatSendBtn').disabled = false;
+            }
+        }
+
+        // 3. CHAT LOGIC
+        function sendChat() {
+            const input = document.getElementById('chatInput');
+            if (input.value.trim() && currentUser) {
+                socket.emit('sendMessage', {
+                    sender: currentUser.team,
+                    text: input.value
+                });
+                input.value = "";
+            }
+        }
+
+        socket.on('receiveMessage', (msg) => {
+            const box = document.getElementById('chatMessages');
+            const div = document.createElement('div');
+            div.innerHTML = `<b>${msg.sender}:</b> ${msg.text}`;
+            box.appendChild(div);
+            box.scrollTop = box.scrollHeight;
+        });
+
+        socket.on('connect', () => console.log("Connected to Server!"));
+        socket.on('connect_error', (err) => console.log("Connection Error: ", err));
+
+    </script>
 </body>
 </html>
