@@ -389,6 +389,35 @@ function renderAuction(state) {
 
 function startAuction(id, base) { socket.emit('startAuction', { playerId: id, baseValue: base }); }
 function bid(inc) { if(user) socket.emit('placeBid', { teamName: user.name, increment: inc }); }
+
+function addPlayer() {
+    const name = document.getElementById('pName').value.trim();
+    const str = document.getElementById('pStrength').value;
+    const type = document.getElementById('pType').value;
+    const val = document.getElementById('pBase').value;
+
+    if (!name || !str || !val) {
+        alert("Please fill in all fields (Name, Strength, and Value)!");
+        return;
+    }
+
+    const data = {
+        name: name,
+        strength: Number(str),   // Force to Number
+        cardType: type,
+        baseValue: Number(val),  // Force to Number
+        status: 'Available',
+        soldTo: '-'
+    };
+
+    console.log("🚀 Sending to Render:", data);
+    socket.emit('addPlayer', data);
+
+    // Clear the inputs
+    document.getElementById('pName').value = '';
+    document.getElementById('pStrength').value = '';
+    document.getElementById('pBase').value = '';
+}
         // --- CHAT SYSTEM ---
 
 // 1. Listen for new messages from server
