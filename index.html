@@ -384,62 +384,44 @@
 
     // Authentication Logic
     function checkAuthUI() {
-        try {
-            // 1. Update Login/Logout Buttons safely
-            const loginSection = document.getElementById('loginSection');
-            const logoutSection = document.getElementById('logoutSection');
-            const userDisplay = document.getElementById('userDisplay');
-            
-            if (loginSection) loginSection.style.display = currentUser ? 'none' : 'block';
-            if (logoutSection) logoutSection.style.display = currentUser ? 'block' : 'none';
-            if (userDisplay) userDisplay.innerText = currentUser ? currentUser.team : '';
-
-            // 2. Hide/Show Admin Buttons
-            const adminCols = document.querySelectorAll('.admin-only');
-            adminCols.forEach(el => {
-                if (currentUser && currentUser.role === 'admin') {
-                    el.classList.remove('hidden');
-                    el.style.display = 'table-cell';
-                } else {
-                    el.classList.add('hidden');
-                    el.style.display = 'none';
-                }
-            });
-
-            // 3. Show Purse Management safely
-            const purseDiv = document.getElementById('purseManagementSection');
-            if (purseDiv) {
-                purseDiv.style.display = (currentUser && currentUser.role === 'admin') ? 'block' : 'none';
-            }
-
-            // 4. UNLOCK CHAT BOX LOGIC
-            const chatInput = document.getElementById('chatInput');
-            const chatSendBtn = document.getElementById('chatSendBtn');
-
-            if (chatInput && chatSendBtn) {
-                if (currentUser) {
-                    // UNLOCK IT
-                    chatInput.disabled = false;
-                    chatInput.removeAttribute('disabled'); // Force unlock
-                    chatSendBtn.disabled = false;
-                    chatSendBtn.removeAttribute('disabled'); // Force unlock
-                    
-                    chatInput.placeholder = `Type a message as ${currentUser.team}...`;
-                    chatSendBtn.style.background = 'var(--primary)';
-                    chatSendBtn.style.cursor = 'pointer';
-                } else {
-                    // LOCK IT
-                    chatInput.disabled = true;
-                    chatSendBtn.disabled = true;
-                    chatInput.placeholder = 'Login as Admin or Captain to chat...';
-                    chatSendBtn.style.background = 'var(--text-muted)';
-                    chatSendBtn.style.cursor = 'not-allowed';
-                }
-            }
-        } catch (error) {
-            console.error("Error updating UI:", error);
+        const loginSection = document.getElementById('loginSection');
+        const logoutSection = document.getElementById('logoutSection');
+        const userDisplay = document.getElementById('userDisplay');
+        
+        // 1. REVERTED TO THE ORIGINAL WORKING LOGIN DISPLAY LOGIC
+        if (currentUser) {
+            if (loginSection) loginSection.classList.add('hidden');
+            if (logoutSection) logoutSection.classList.remove('hidden');
+            if (userDisplay) userDisplay.innerText = currentUser.team;
+        } else {
+            if (loginSection) loginSection.classList.remove('hidden');
+            if (logoutSection) logoutSection.classList.add('hidden');
+            if (userDisplay) userDisplay.innerText = '';
         }
-    }
+
+        // 2. Hide/Show Admin Buttons
+        const adminCols = document.querySelectorAll('.admin-only');
+        adminCols.forEach(el => {
+            if (currentUser && currentUser.role === 'admin') {
+                el.classList.remove('hidden');
+            } else {
+                el.classList.add('hidden');
+            }
+        });
+
+        // 3. Show Purse Management safely
+        const purseDiv = document.getElementById('purseManagementSection');
+        if (purseDiv) {
+            purseDiv.style.display = (currentUser && currentUser.role === 'admin') ? 'block' : 'none';
+        }
+
+        // 4. UNLOCK CHAT BOX
+        const chatInput = document.getElementById('chatInput');
+        const chatSendBtn = document.getElementById('chatSendBtn');
+
+        if (chatInput && chatSendBtn) {
+            if (currentUser) {
+                // Unlock
 
         // SHOW PURSE MANAGEMENT ONLY FOR ADMIN:
         const purseDiv = document.getElementById('purseManagementSection');
