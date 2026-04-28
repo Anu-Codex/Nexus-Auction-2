@@ -380,31 +380,30 @@
 
     // Authentication Logic
     function checkAuthUI() {
+        const loginSection = document.getElementById('loginSection');
+        const logoutSection = document.getElementById('logoutSection');
+        const userDisplay = document.getElementById('userDisplay');
+        
+        // Hide/Show Login parts
         if (currentUser) {
-            document.getElementById('loginBtn').classList.add('hidden');
-            document.getElementById('logoutBtn').classList.remove('hidden');
-            document.getElementById('userInfo').innerText = `${currentUser.team} | ${currentUser.role}`;
-
-            if (currentUser.role === 'admin') {
-                document.getElementById('adminDashboard').classList.remove('hidden');
-                document.getElementById('adminLiveControls').classList.remove('hidden');
-                document.getElementById('captainControls').classList.add('hidden');
-                document.querySelectorAll('.admin-only').forEach(el => el.classList.remove('hidden'));
-            } else {
-                document.getElementById('adminDashboard').classList.add('hidden');
-                document.getElementById('adminLiveControls').classList.add('hidden');
-                document.getElementById('captainControls').classList.remove('hidden');
-                document.querySelectorAll('.admin-only').forEach(el => el.classList.add('hidden'));
-            }
+            loginSection.classList.add('hidden');
+            logoutSection.classList.remove('hidden');
+            userDisplay.innerText = currentUser.team;
         } else {
-            document.getElementById('loginBtn').classList.remove('hidden');
-            document.getElementById('logoutBtn').classList.add('hidden');
-            document.getElementById('userInfo').innerText = "Public View";
-            document.getElementById('adminDashboard').classList.add('hidden');
-            document.getElementById('adminLiveControls').classList.add('hidden');
-            document.getElementById('captainControls').classList.add('hidden');
-            document.querySelectorAll('.admin-only').forEach(el => el.classList.add('hidden'));
+            loginSection.classList.remove('hidden');
+            logoutSection.classList.add('hidden');
+            userDisplay.innerText = '';
         }
+
+        // Hide/Show Admin Only Buttons
+        const adminCols = document.querySelectorAll('.admin-only');
+        adminCols.forEach(el => {
+            if (currentUser && currentUser.role === 'admin') {
+                el.classList.remove('hidden');
+            } else {
+                el.classList.add('hidden');
+            }
+        });
 
         // SHOW PURSE MANAGEMENT ONLY FOR ADMIN:
         const purseDiv = document.getElementById('purseManagementSection');
@@ -412,20 +411,18 @@
             purseDiv.style.display = (currentUser && currentUser.role === 'admin') ? 'block' : 'none';
         }
 
-        // --- NEW: CHAT BOX LOGIN LOGIC ---
+        // CHAT BOX LOGIN LOGIC
         const chatInput = document.getElementById('chatInput');
         const chatSendBtn = document.getElementById('chatSendBtn');
 
         if (chatInput && chatSendBtn) {
             if (currentUser) {
-                // Unlock Chat Box
                 chatInput.disabled = false;
                 chatSendBtn.disabled = false;
-                chatInput.placeholder = `Type a message as ${currentUser.team}...`; // Shows who you are!
+                chatInput.placeholder = `Type a message as ${currentUser.team}...`;
                 chatSendBtn.style.background = 'var(--primary)';
                 chatSendBtn.style.cursor = 'pointer';
             } else {
-                // Lock Chat Box (Logged out)
                 chatInput.disabled = true;
                 chatSendBtn.disabled = true;
                 chatInput.placeholder = 'Login as Admin or Captain to chat...';
@@ -433,8 +430,8 @@
                 chatSendBtn.style.cursor = 'not-allowed';
             }
         }
-        }
-        }
+    }
+
     function showLogin() { document.getElementById('loginModal').style.display = 'flex'; }
     function hideLogin() { document.getElementById('loginModal').style.display = 'none'; }
     function processLogin() {
