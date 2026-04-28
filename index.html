@@ -376,15 +376,7 @@
     }
     function sellPlayer() { socket.emit('sellPlayer'); }
     function cancelAuction() { socket.emit('cancelAuction'); }
-    // RENDER A SINGLE CHAT MESSAGE
-    function appendChat(chat, autoScroll) {
-        const chatBox = document.getElementById('chatMessages');
-        
-        // Remove "No messages yet" text if it's the first message
-        if (chatBox.innerHTML.includes("No messages yet")) chatBox.innerHTML = '';
-
-        // Format the time (e.g., 2:30 PM)
-        const time = new Date(chat.timestamp).toLocaleTimeString(
+    
 
     // Authentication Logic
     function checkAuthUI() {
@@ -455,6 +447,15 @@
         } else { alert("Invalid Credentials!"); }
     }
     function logout() { currentUser = null; sessionStorage.removeItem('nexus_user'); checkAuthUI(); renderPlayers(localPlayers); }
+    // 1. RENDER A SINGLE CHAT MESSAGE
+    function appendChat(chat, autoScroll) {
+        const chatBox = document.getElementById('chatMessages');
+        
+        // Remove "No messages yet" text if it's the first message
+        if (chatBox.innerHTML.includes("No messages yet")) chatBox.innerHTML = '';
+
+        // Format the time (e.g., 2:30 PM)
+        const time = new Date(chat.timestamp).toLocaleTimeString(
 </script>
 </body>
 </html>
