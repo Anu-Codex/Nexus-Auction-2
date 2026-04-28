@@ -232,34 +232,41 @@
         socket.on('alertMsg', msg => alert(msg));
 
         // --- RENDER FUNCTIONS ---
-        function renderPlayers(players) {
-            const list = document.getElementById('playerList');
-            list.innerHTML = players.map(p => `
-                <tr class="hover:bg-white/5 transition">
-                    <td class="p-4 font-bold text-white">${p.name}</td>
-                    <td class="p-4 text-gray-400">${p.strength}</td>
-                    <td class="p-4">
-                        <span class="px-2 py-0.5 rounded-full text-[10px] border border-gray-600 bg-gray-800 text-gray-300">${p.cardType}</span>
-                    </td>
-                    <td class="p-4">
-                        <span class="font-bold ${p.status === 'Available' ? 'text-neon' : 'text-red-500'}">${p.status}</span>
-                    </td>
-                    <td class="p-4 text-white">${p.baseValue} L</td>
-                    <td class="p-4 text-center">
-                        ${user.role === 'admin' && p.status === 'Available' ? 
-                          `<button onclick="startAuction('${p._id}', ${p.baseValue})" class="bg-neon text-black text-[10px] px-3 py-1 rounded-md font-bold uppercase">Start</button>` : 
-                          (p.status === 'Sold' ? `<span class="text-[10px] text-gray-600">${p.soldTo}</span>` : '---')}
-                    </td>
-                </tr>
-            `).join('');
-        }
+        
 
         function renderTeams(teams) {
             const list = document.getElementById('budgetList');
             list.innerHTML = teams.map(t => `
                 <div class="flex justify-between items-center p-3 rounded-lg hover:bg-white/5 border border-transparent hover:border-white/5 transition">
                     <span class="text-sm font-semibold">${t.name}</span>
-                    <span class="text-neon font-black">${t.budget} Lakhs</span>
+                    <span cfunction renderPlayers(players) {
+    const list = document.getElementById('playerList');
+    list.innerHTML = players.map(p => {
+        // This line checks all common names for 'Value'. 
+        // It uses p.baseValue, but if that's missing, it tries p.value or p.base_value
+        const displayValue = p.baseValue || p.value || p.base_price || 0;
+        const displayStrength = p.strength || p.rating || p.power || 0;
+
+        return `
+            <tr class="hover:bg-white/5 transition">
+                <td class="p-4 font-bold text-white">${p.name}</td>
+                <td class="p-4 text-gray-400">${displayStrength}</td>
+                <td class="p-4">
+                    <span class="px-2 py-0.5 rounded-full text-[10px] border border-gray-600 bg-gray-800 text-gray-300">${p.cardType || 'Standard'}</span>
+                </td>
+                <td class="p-4">
+                    <span class="font-bold ${p.status === 'Available' ? 'text-neon' : 'text-red-500'}">${p.status}</span>
+                </td>
+                <td class="p-4 text-white">${displayValue} L</td>
+                <td class="p-4 text-center">
+                    ${user.role === 'admin' && p.status === 'Available' ? 
+                      `<button onclick="startAuction('${p._id}', ${displayValue})" class="bg-neon text-black text-[10px] px-3 py-1 rounded-md font-bold uppercase">Start</button>` : 
+                      (p.status === 'Sold' ? `<span class="text-[10px] text-gray-600">${p.soldTo}</span>` : '---')}
+                </td>
+            </tr>
+        `;
+    }).join('');
+}lass="text-neon font-black">${t.budget} Lakhs</span>
                 </div>
             `).join('');
         }
