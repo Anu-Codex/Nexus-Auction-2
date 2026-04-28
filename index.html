@@ -1,3 +1,220 @@
-<html>
-    <body> Chud Gya</body>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus PES Legends - Auction 2026</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0a0f16;
+            color: #e2e8f0;
+        }
+        .glass-card {
+            background: #111827;
+            border: 1px solid #1f2937;
+        }
+        .auction-border {
+            border: 1px solid #10b981;
+        }
+        .text-neon-green { color: #10b981; }
+        .bg-neon-green { background-color: #10b981; }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #0a0f16; }
+        ::-webkit-scrollbar-thumb { background: #1f2937; border-radius: 10px; }
+        
+        .pulse {
+            animation: pulse-animation 2s infinite;
+        }
+        @keyframes pulse-animation {
+            0% { box-shadow: 0 0 0 0px rgba(239, 68, 68, 0.7); }
+            100% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+        }
+    </style>
+</head>
+<body class="p-2 md:p-4">
+
+    <!-- Top Navigation -->
+    <nav class="flex justify-between items-center mb-6 px-2">
+        <div class="flex items-center gap-2">
+            <i class="fa-solid fa-gamepad text-neon-green text-xl"></i>
+            <h1 class="font-bold text-lg tracking-tight text-neon-green">Nexus PES Legends</h1>
+        </div>
+        <div class="flex items-center gap-3">
+            <span class="text-xs text-gray-400 uppercase tracking-widest">
+                <span id="userTeam">RISING FALCONS</span> | <span class="text-gray-500">captain</span>
+            </span>
+            <button class="bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1 rounded font-bold transition">Logout</button>
+        </div>
+    </nav>
+
+    <!-- Main Title -->
+    <div class="text-center mb-8">
+        <h2 class="text-2xl font-bold flex justify-center items-center gap-2">
+            🏆 Nexus Auction Carnival 2026
+        </h2>
+    </div>
+
+    <!-- Top Grid: Live Auction & Budgets -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+        
+        <!-- Live Auction Card -->
+        <div class="lg:col-span-2 glass-card auction-border rounded-lg p-6 min-h-[300px] flex flex-col items-center justify-center relative">
+            <div class="absolute top-4 left-4 flex items-center gap-2">
+                <span class="h-3 w-3 bg-red-500 rounded-full pulse"></span>
+                <span class="text-neon-green font-bold text-sm tracking-widest uppercase">Live Auction</span>
+            </div>
+            
+            <div id="auctionContent" class="text-center">
+                <p class="text-gray-500 italic">Waiting for Admin...</p>
+                <!-- Active player details will be injected here -->
+            </div>
+        </div>
+
+        <!-- Team Budgets Card -->
+        <div class="glass-card rounded-lg overflow-hidden border border-gray-800">
+            <div class="bg-[#064e3b] p-3 flex items-center gap-2">
+                <i class="fa-solid fa-wallet text-yellow-400"></i>
+                <h3 class="font-bold text-sm text-green-100">Team Budgets</h3>
+            </div>
+            <table class="w-full text-left text-sm">
+                <thead class="bg-black text-gray-400 uppercase text-[10px]">
+                    <tr>
+                        <th class="p-3">Team</th>
+                        <th class="p-3 text-right">Purse Left</th>
+                    </tr>
+                </thead>
+                <tbody id="budgetTableBody">
+                    <!-- Teams injected here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Admin Purse Management (Only visible to admin logic) -->
+    <div class="glass-card rounded-lg p-4 mb-6 border border-gray-800">
+        <div class="flex items-center gap-2 mb-3">
+            <i class="fa-solid fa-coins text-yellow-500"></i>
+            <h3 class="text-sm font-bold">Purse Management</h3>
+        </div>
+        <div class="flex gap-2">
+            <input id="extraBudgetInput" type="number" placeholder="Amount to add (e.g. 50)" 
+                class="bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm w-full focus:outline-none focus:border-neon-green">
+            <button onclick="addBudget()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded text-sm font-bold whitespace-nowrap transition">
+                Add Bonus to All Teams
+            </button>
+        </div>
+        <p class="text-[10px] text-gray-500 mt-2">*This adds the amount to their current balance without affecting sold players.</p>
+    </div>
+
+    <!-- Available Player List -->
+    <div class="glass-card rounded-lg overflow-hidden border border-gray-800">
+        <div class="bg-[#064e3b] p-3 flex items-center gap-2 border-b border-emerald-900">
+            <i class="fa-solid fa-users text-white"></i>
+            <h3 class="font-bold text-sm text-white">Available Player List</h3>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+                <thead class="bg-black text-neon-green uppercase text-[10px] border-b border-gray-800">
+                    <tr>
+                        <th class="p-4">Name</th>
+                        <th class="p-4">Strength</th>
+                        <th class="p-4">Card Type</th>
+                        <th class="p-4">Base Value</th>
+                        <th class="p-4">Status</th>
+                        <th class="p-4">Sold To</th>
+                    </tr>
+                </thead>
+                <tbody id="playerTableBody" class="divide-y divide-gray-800">
+                    <tr>
+                        <td colspan="6" class="p-10 text-center text-gray-500">Connecting to database...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // REPLACE WITH YOUR ACTUAL BACKEND URL
+        const socket = io("https://nexus-go.onrender.com/"); 
+
+        const playerTableBody = document.getElementById('playerTableBody');
+        const budgetTableBody = document.getElementById('budgetTableBody');
+        const auctionContent = document.getElementById('auctionContent');
+
+        // Initial Data Load
+        socket.on('initialData', (data) => {
+            renderPlayers(data.players);
+            renderBudgets(data.teams);
+            renderAuction(data.state);
+        });
+
+        // Real-time Updates
+        socket.on('updatePlayers', (players) => renderPlayers(players));
+        socket.on('updateTeams', (teams) => renderBudgets(teams));
+        socket.on('updateAuction', (state) => renderAuction(state));
+
+        // Alert handling
+        socket.on('alertMsg', (msg) => alert(msg));
+        socket.on('errorMsg', (msg) => alert("❌ Error: " + msg));
+
+        function renderPlayers(players) {
+            playerTableBody.innerHTML = players.map(p => `
+                <tr class="hover:bg-gray-800/50 transition">
+                    <td class="p-4 font-semibold">${p.name}</td>
+                    <td class="p-4 text-gray-300">${p.strength}</td>
+                    <td class="p-4 text-gray-300">${p.cardType}</td>
+                    <td class="p-4 text-gray-300">${p.baseValue} L</td>
+                    <td class="p-4 font-bold ${p.status === 'Available' ? 'text-neon-green' : 'text-red-500'}">
+                        ${p.status}
+                    </td>
+                    <td class="p-4 text-gray-400">${p.soldTo || '-'}</td>
+                </tr>
+            `).join('');
+        }
+
+        function renderBudgets(teams) {
+            budgetTableBody.innerHTML = teams.map(t => `
+                <tr class="border-b border-gray-800 hover:bg-gray-800/30">
+                    <td class="p-3 font-medium">${t.name}</td>
+                    <td class="p-3 text-right text-neon-green font-bold">${t.budget.toFixed(2)} L</td>
+                </tr>
+            `).join('');
+        }
+
+        function renderAuction(state) {
+            if (!state || !state.activePlayerId) {
+                auctionContent.innerHTML = `<p class="text-gray-500 italic">Waiting for Admin...</p>`;
+                return;
+            }
+
+            const player = state.activePlayerId;
+            auctionContent.innerHTML = `
+                <div class="animate-in fade-in duration-500">
+                    <h2 class="text-3xl font-bold text-white mb-2">${player.name}</h2>
+                    <p class="text-neon-green tracking-widest uppercase text-xs mb-4">${player.cardType} | STR: ${player.strength}</p>
+                    <div class="bg-black/50 p-4 rounded-lg inline-block border border-gray-700">
+                        <p class="text-gray-400 text-xs uppercase">Current Bid</p>
+                        <p class="text-4xl font-black text-yellow-400">${state.currentBid} L</p>
+                        <p class="text-sm text-gray-300 mt-2">Highest Bidder: <span class="text-white font-bold">${state.highestBidder || 'None'}</span></p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function addBudget() {
+            const amount = document.getElementById('extraBudgetInput').value;
+            if (amount) {
+                socket.emit('addExtraBudget', amount);
+                document.getElementById('extraBudgetInput').value = '';
+            }
+        }
+    </script>
+</body>
 </html>
