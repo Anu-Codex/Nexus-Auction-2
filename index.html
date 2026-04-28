@@ -376,6 +376,15 @@
     }
     function sellPlayer() { socket.emit('sellPlayer'); }
     function cancelAuction() { socket.emit('cancelAuction'); }
+    // RENDER A SINGLE CHAT MESSAGE
+    function appendChat(chat, autoScroll) {
+        const chatBox = document.getElementById('chatMessages');
+        
+        // Remove "No messages yet" placeholder if it exists
+        if(chatBox.innerHTML.includes("No messages yet")) chatBox.innerHTML = '';
+
+        // Format the time (e.g., 2:30 PM)
+        const time = new Date(chat.timestamp).toLocaleTimeString(
 
     // Authentication Logic
     function checkAuthUI() {
