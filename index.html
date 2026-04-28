@@ -165,6 +165,60 @@
 
     // Initialize Socket Connection to the Render Server
     const socket = io(BACKEND_URL);
+    // --- USER DATABASE & AUTHENTICATION ---
+    let currentUser = null;
+
+    const users = {
+        "admin@nexus.com": { password: "admin123", role: "admin", team: "Admin" },
+        "abhisek@nexus.com": { password: "abhisek123", role: "captain", team: "RISING FALCONS" },
+        "sukdeb@nexus.com": { password: "sukdeb123", role: "captain", team: "Team NRG" },
+        "avirup@nexus.com": { password: "avirup123", role: "captain", team: "Team SHAKTI" },
+        "sanju@nexus.com": { password: "sanju123", role: "captain", team: "Golden Knights FC" },
+        "trirup@nexus.com": { password: "trirup123", role: "captain", team: "Dominators" },
+        "gourav@nexus.com": { password: "gourav123", role: "captain", team: "Aura Farmer's" }
+    };
+
+    function login() {
+        // Look for input boxes on the screen
+        const emailInput = document.getElementById('emailInput') || document.getElementById('email');
+        const passInput = document.getElementById('passwordInput') || document.getElementById('password');
+        
+        let email, password;
+
+        if (emailInput && passInput) {
+            // Get text from the boxes
+            email = emailInput.value.trim();
+            password = passInput.value.trim();
+        } else {
+            // Fallback: If text boxes are missing, use a browser popup instead!
+            email = prompt("Enter your Email:");
+            password = prompt("Enter your Password:");
+        }
+
+        if (!email || !password) return alert("⚠️ Please enter both email and password!");
+
+        const user = users[email];
+        
+        if (user && user.password === password) {
+            // Success! Save the user info
+            currentUser = { email: email, role: user.role, team: user.team };
+            
+            // Clear the input boxes
+            if (emailInput) emailInput.value = '';
+            if (passInput) passInput.value = '';
+
+            alert(`✅ Successfully logged in as ${user.team}`);
+            checkAuthUI(); // This unlocks the chat box and admin buttons!
+        } else {
+            alert("❌ Invalid email or password!");
+        }
+    }
+
+    function logout() {
+        currentUser = null;
+        alert("Logged out successfully.");
+        checkAuthUI(); // This locks the chat box again
+    }
 
     const users = {
         "admin@nexus.com": { password: "admin123", role: "admin", team: "Admin" },
