@@ -2,181 +2,209 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=1024">
     <title>Nexus Auction Live</title>
-    <!-- 1. SOCKET.IO LIBRARY - DO NOT REMOVE -->
+    <!-- 1. LOAD SOCKET.IO FIRST -->
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <style>
         :root { --primary: #00d2ff; --bg: #0f0c29; --card: #1b1b2f; --text: #ffffff; }
-        body { background: var(--bg); color: var(--text); font-family: sans-serif; padding: 20px; }
+        body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px; }
+        .container { max-width: 1200px; margin: auto; }
         .hidden { display: none !important; }
-        .grid { display: grid; grid-template-columns: 1fr 300px; gap: 20px; }
-        table { width: 100%; border-collapse: collapse; background: var(--card); }
-        th, td { padding: 12px; border: 1px solid #333; text-align: left; }
-        .stat-card { background: var(--card); padding: 15px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid var(--primary); }
-        #chatBox { background: var(--card); height: 300px; border: 1px solid #333; display: flex; flex-direction: column; }
-        #chatMessages { flex: 1; overflow-y: auto; padding: 10px; font-size: 14px; }
-        .input-area { display: flex; padding: 10px; background: #111; }
-        input { flex: 1; padding: 8px; background: #222; color: white; border: 1px solid #444; }
-        button { padding: 8px 15px; background: var(--primary); border: none; color: black; font-weight: bold; cursor: pointer; }
-        button:disabled { background: #555; cursor: not-allowed; }
+        
+        /* Header & Auth */
+        header { display: flex; justify-content: space-between; align-items: center; background: var(--card); padding: 15px 25px; border-radius: 10px; margin-bottom: 20px; border-bottom: 3px solid var(--primary); }
+        button { padding: 10px 20px; background: var(--primary); border: none; border-radius: 5px; cursor: pointer; font-weight: bold; color: #000; }
+        button:disabled { background: #444; color: #888; cursor: not-allowed; }
+
+        /* Stats/Purse Grid */
+        .purse-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 25px; }
+        .stat-card { background: var(--card); padding: 15px; border-radius: 8px; border-left: 5px solid var(--primary); box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        .stat-card h3 { margin: 0 0 10px 0; font-size: 16px; color: var(--primary); }
+
+        /* Main Content Grid */
+        .main-grid { display: grid; grid-template-columns: 1fr 350px; gap: 20px; }
+        table { width: 100%; border-collapse: collapse; background: var(--card); border-radius: 10px; overflow: hidden; }
+        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #2a2a40; }
+        th { background: rgba(0,0,0,0.3); color: var(--primary); }
+
+        /* Chat Styling */
+        .chat-container { background: var(--card); border-radius: 10px; display: flex; flex-direction: column; height: 450px; border: 1px solid #333; }
+        #chatMessages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 8px; font-size: 14px; }
+        .chat-input-area { padding: 15px; background: rgba(0,0,0,0.2); display: flex; gap: 10px; }
+        #chatInput { flex: 1; padding: 10px; background: #000; border: 1px solid #444; color: #fff; border-radius: 5px; }
     </style>
 </head>
 <body>
 
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h1>NEXUS AUCTION</h1>
+<div class="container">
+    <header>
+        <h1 style="margin: 0; font-size: 24px;">NEXUS AUCTION <span id="connectionStatus" style="font-size: 12px; color: orange;">● Connecting...</span></h1>
         <div id="authSection">
             <div id="loginSection">
-                <button onclick="login()">LOGIN AS CAPTAIN/ADMIN</button>
+                <button onclick="handleLogin()">LOGIN</button>
             </div>
             <div id="logoutSection" class="hidden">
-                <span id="userDisplay"></span>
-                <button onclick="logout()" style="background: #ff4d4d;">LOGOUT</button>
+                <span id="userDisplay" style="margin-right: 15px; font-weight: bold;"></span>
+                <button onclick="handleLogout()" style="background: #ff4d4d; color: white;">LOGOUT</button>
             </div>
         </div>
+    </header>
+
+    <!-- PURSE SECTION -->
+    <div id="purseDisplay" class="purse-grid">
+        <!-- Team data will auto-load here -->
     </div>
 
-    <div id="purseDisplay" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px;">
-        <!-- Purse data loads here -->
-    </div>
-
-    <div class="grid">
-        <div>
-            <h3>Available Players</h3>
+    <div class="main-grid">
+        <!-- PLAYER LIST -->
+        <section>
+            <h2 style="color: var(--primary);">Available Players</h2>
             <table>
                 <thead>
                     <tr>
-                        <th>Name</th>
+                        <th>Player Name</th>
                         <th>Category</th>
                         <th>Base Price</th>
                     </tr>
                 </thead>
                 <tbody id="playerList">
-                    <tr><td colspan="3">Waiting for server data...</td></tr>
+                    <tr><td colspan="3" style="text-align: center;">Waking up server... please wait...</td></tr>
                 </tbody>
             </table>
-        </div>
+        </section>
 
-        <div>
-            <h3>Live Chat</h3>
-            <div id="chatBox">
+        <!-- CHAT SECTION -->
+        <section>
+            <h2 style="color: var(--primary);">Live Chat</h2>
+            <div class="chat-container">
                 <div id="chatMessages"></div>
-                <div class="input-area">
-                    <input type="text" id="chatInput" placeholder="Login to chat..." disabled>
+                <div class="chat-input-area">
+                    <input type="text" id="chatInput" placeholder="Login to chat..." disabled onkeypress="if(event.key==='Enter') sendChat()">
                     <button id="chatSendBtn" onclick="sendChat()" disabled>Send</button>
                 </div>
             </div>
-        </div>
+        </section>
     </div>
+</div>
 
-    <script>
-        // REPLACE THIS URL WITH YOUR ACTUAL RENDER BACKEND URL
-        const BACKEND_URL = "https://nexus-go.onrender.com/";
-        const socket = io(BACKEND_URL);
+<script>
+    // --- CONFIGURATION: CHANGE THIS TO YOUR RENDER URL ---
+    const BACKEND_URL = "https://nexus-go.onrender.com/"; 
+    
+    const socket = io(BACKEND_URL);
+    let currentUser = null;
 
-        let currentUser = null;
-
-        // USER DATABASE
-        const users = {
-            "admin@nexus.com": { password: "admin123", role: "admin", team: "Admin" },
+    // --- USER DATABASE ---
+    const users = {
+        "admin@nexus.com": { password: "admin123", role: "admin", team: "Admin" },
         "abhisek@nexus.com": { password: "abhisek123", role: "captain", team: "RISING FALCONS" },
         "sukdeb@nexus.com": { password: "sukdeb123", role: "captain", team: "Team NRG" },
         "avirup@nexus.com": { password: "avirup123", role: "captain", team: "Team SHAKTI" },
         "sanju@nexus.com": { password: "sanju123", role: "captain", team: "Golden Knights FC" },
         "trirup@nexus.com": { password: "trirup123", role: "captain", team: "Dominators" },
         "gourav@nexus.com": { password: "gourav123", role: "captain", team: "Aura Farmer's" }  }
-        };
+    };
 
-        // 1. DATA LOADING
-        socket.on('updateData', (data) => {
-            console.log("Data Received:", data);
-            renderPlayers(data.players);
-            renderPurse(data.teams);
-        });
+    // --- 1. CONNECTION LOGIC ---
+    socket.on('connect', () => {
+        document.getElementById('connectionStatus').innerText = "● Connected";
+        document.getElementById('connectionStatus').style.color = "lightgreen";
+    });
 
-        function renderPlayers(players) {
-            const list = document.getElementById('playerList');
-            if (!players || players.length === 0) {
-                list.innerHTML = "<tr><td colspan='3'>No players available</td></tr>";
-                return;
-            }
-            list.innerHTML = players.filter(p => !p.soldTo).map(p => `
-                <tr>
-                    <td>${p.name}</td>
-                    <td>${p.category}</td>
-                    <td>${p.basePrice} L</td>
-                </tr>
-            `).join('');
+    socket.on('connect_error', () => {
+        document.getElementById('connectionStatus').innerText = "● Offline (Check URL)";
+        document.getElementById('connectionStatus').style.color = "red";
+    });
+
+    // --- 2. DATA RECEIVING (PLAYERS & PURSE) ---
+    socket.on('updateData', (data) => {
+        console.log("Data Update:", data);
+        renderPlayers(data.players);
+        renderPurse(data.teams);
+    });
+
+    function renderPlayers(players) {
+        const list = document.getElementById('playerList');
+        if (!players || players.length === 0) {
+            list.innerHTML = "<tr><td colspan='3'>No players in list.</td></tr>";
+            return;
         }
+        list.innerHTML = players
+            .filter(p => !p.soldTo)
+            .map(p => `<tr><td><b>${p.name}</b></td><td>${p.category}</td><td>${p.basePrice} L</td></tr>`)
+            .join('');
+    }
 
-        function renderPurse(teams) {
-            const container = document.getElementById('purseDisplay');
-            if (!teams) return;
-            container.innerHTML = Object.entries(teams).map(([name, data]) => `
-                <div class="stat-card">
-                    <strong>${name}</strong><br>
-                    Budget: ${data.budget} L | Players: ${data.playerCount}
-                </div>
-            `).join('');
+    function renderPurse(teams) {
+        const container = document.getElementById('purseDisplay');
+        if (!teams) return;
+        container.innerHTML = Object.entries(teams).map(([name, data]) => `
+            <div class="stat-card">
+                <h3>${name}</h3>
+                <p style="margin:0;">Budget: <b>${data.budget} L</b></p>
+                <p style="margin:5px 0 0 0; font-size:12px;">Players: ${data.playerCount}/12</p>
+            </div>
+        `).join('');
+    }
+
+    // --- 3. LOGIN / LOGOUT LOGIC ---
+    function handleLogin() {
+        const email = prompt("Enter Email:");
+        const pass = prompt("Enter Password:");
+        
+        if (!email || !pass) return;
+
+        const user = users[email];
+        if (user && user.password === pass) {
+            currentUser = user;
+            alert("Login Successful as " + user.team);
+            updateAuthUI();
+        } else {
+            alert("Invalid Email or Password!");
         }
+    }
 
-        // 2. LOGIN LOGIC
-        function login() {
-            const email = prompt("Email:");
-            const pass = prompt("Password:");
-            const user = users[email];
+    function handleLogout() {
+        currentUser = null;
+        location.reload(); 
+    }
 
-            if (user && user.password === pass) {
-                currentUser = user;
-                alert("Welcome " + user.team);
-                updateUI();
-            } else {
-                alert("Wrong login!");
-            }
+    function updateAuthUI() {
+        if (currentUser) {
+            document.getElementById('loginSection').classList.add('hidden');
+            document.getElementById('logoutSection').classList.remove('hidden');
+            document.getElementById('userDisplay').innerText = currentUser.team;
+            
+            // Unlock Chat
+            document.getElementById('chatInput').disabled = false;
+            document.getElementById('chatInput').placeholder = "Chat as " + currentUser.team + "...";
+            document.getElementById('chatSendBtn').disabled = false;
         }
+    }
 
-        function logout() {
-            currentUser = null;
-            location.reload();
+    // --- 4. CHAT LOGIC ---
+    function sendChat() {
+        const input = document.getElementById('chatInput');
+        const text = input.value.trim();
+        if (text && currentUser) {
+            socket.emit('sendMessage', {
+                sender: currentUser.team,
+                text: text
+            });
+            input.value = "";
         }
+    }
 
-        function updateUI() {
-            if (currentUser) {
-                document.getElementById('loginSection').classList.add('hidden');
-                document.getElementById('logoutSection').classList.remove('hidden');
-                document.getElementById('userDisplay').innerText = currentUser.team + " ";
-                
-                // Unlock Chat
-                document.getElementById('chatInput').disabled = false;
-                document.getElementById('chatInput').placeholder = "Type as " + currentUser.team;
-                document.getElementById('chatSendBtn').disabled = false;
-            }
-        }
+    socket.on('receiveMessage', (msg) => {
+        const box = document.getElementById('chatMessages');
+        const div = document.createElement('div');
+        div.style.marginBottom = "5px";
+        div.innerHTML = `<b style="color:var(--primary)">${msg.sender}:</b> <span>${msg.text}</span>`;
+        box.appendChild(div);
+        box.scrollTop = box.scrollHeight;
+    });
 
-        // 3. CHAT LOGIC
-        function sendChat() {
-            const input = document.getElementById('chatInput');
-            if (input.value.trim() && currentUser) {
-                socket.emit('sendMessage', {
-                    sender: currentUser.team,
-                    text: input.value
-                });
-                input.value = "";
-            }
-        }
-
-        socket.on('receiveMessage', (msg) => {
-            const box = document.getElementById('chatMessages');
-            const div = document.createElement('div');
-            div.innerHTML = `<b>${msg.sender}:</b> ${msg.text}`;
-            box.appendChild(div);
-            box.scrollTop = box.scrollHeight;
-        });
-
-        socket.on('connect', () => console.log("Connected to Server!"));
-        socket.on('connect_error', (err) => console.log("Connection Error: ", err));
-
-    </script>
+</script>
 </body>
 </html>
