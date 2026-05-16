@@ -6,8 +6,6 @@
     <title>Nexus PES Legends | Auction 2026</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&display=swap');
@@ -15,68 +13,71 @@
         .glass { background: rgba(17, 24, 39, 0.8); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.05); }
         .text-neon { color: #10b981; }
         .bg-neon { background-color: #10b981; }
+        .timer-critical { color: #ef4444; animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0; } }
     </style>
 </head>
 <body>
-    <!-- LOGIN MODAL -->
     <div id="loginModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black">
         <div class="glass p-8 rounded-2xl w-full max-w-md border border-emerald-500/30">
-            <h1 class="text-3xl font-bold text-neon text-center mb-6">NEXUS LOGIN</h1>
-            <input type="email" id="email" placeholder="Email" class="w-full bg-gray-900 p-3 rounded mb-4 outline-none border border-gray-700">
-            <input type="password" id="password" placeholder="Password" class="w-full bg-gray-900 p-3 rounded mb-6 outline-none border border-gray-700">
-            <button onclick="attemptLogin()" class="w-full bg-neon text-black font-bold py-3 rounded">LOGIN</button>
-            <button onclick="guestAccess()" class="w-full mt-2 text-gray-500 text-sm">GUEST ACCESS</button>
+            <h1 class="text-3xl font-bold text-neon text-center mb-6 uppercase">Nexus Auction</h1>
+            <input type="email" id="email" placeholder="Email" class="w-full bg-gray-900 p-3 rounded mb-4 border border-gray-700 outline-none">
+            <input type="password" id="password" placeholder="Password" class="w-full bg-gray-900 p-3 rounded mb-6 border border-gray-700 outline-none">
+            <button onclick="attemptLogin()" class="w-full bg-neon text-black font-bold py-3 rounded hover:brightness-110">LOGIN</button>
+            <button onclick="guestAccess()" class="w-full mt-4 text-gray-500">VIEW AS GUEST</button>
         </div>
     </div>
 
     <div id="dashboard" class="hidden">
-        <nav class="glass p-4 flex justify-between items-center border-b border-white/5">
-            <span class="font-bold text-xl uppercase">Nexus <span class="text-neon">Auction</span></span>
-            <button onclick="logout()" class="text-red-500 text-sm font-bold">LOGOUT</button>
+        <nav class="glass p-4 px-8 flex justify-between items-center border-b border-white/5 sticky top-0 z-50">
+            <span class="font-bold text-xl uppercase tracking-tighter">Nexus <span class="text-neon">Legends</span></span>
+            <div class="flex items-center gap-6">
+                <div class="text-right"><p id="uName" class="text-sm font-bold m-0"></p><p id="uRole" class="text-[10px] text-neon uppercase"></p></div>
+                <button onclick="logout()" class="bg-red-500/20 text-red-500 px-3 py-1 rounded font-bold text-xs">LOGOUT</button>
+            </div>
         </nav>
 
-        <main class="max-w-7xl mx-auto p-6">
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                <!-- Left -->
-                <div class="lg:col-span-8 space-y-6">
-                    <div id="auctionDisplay" class="glass rounded-2xl p-10 min-h-[300px] flex items-center justify-center border border-emerald-500/20 text-center">
-                        <p class="animate-pulse text-gray-500">Connecting to server...</p>
-                    </div>
-
-                    <div id="adminPlayerForm" class="hidden glass p-6 rounded-2xl border border-white/5">
-                        <h3 class="font-bold mb-4">Add New Player</h3>
-                        <div class="grid grid-cols-4 gap-4">
-                            <input id="pName" type="text" placeholder="Name" class="bg-gray-800 p-2 rounded">
-                            <input id="pStrength" type="number" placeholder="STR" class="bg-gray-800 p-2 rounded">
-                            <select id="pType" class="bg-gray-800 p-2 rounded"><option>Show Time</option><option>Epic</option><option>Standard</option></select>
-                            <input id="pBase" type="number" placeholder="Base" class="bg-gray-800 p-2 rounded">
-                        </div>
-                        <button onclick="addPlayer()" class="w-full mt-4 bg-emerald-600 py-2 rounded font-bold">ADD PLAYER</button>
-                    </div>
-
-                    <div class="glass rounded-2xl overflow-hidden border border-white/5">
-                        <table class="w-full text-left">
-                            <thead class="bg-black/40 text-xs text-gray-400">
-                                <tr><th class="p-4">Name</th><th class="p-4">STR</th><th class="p-4">Type</th><th class="p-4">Status</th><th class="p-4">Base</th><th class="p-4">Action</th></tr>
-                            </thead>
-                            <tbody id="playerList" class="text-sm"></tbody>
-                        </table>
-                    </div>
+        <main class="max-w-7xl mx-auto p-6 grid grid-cols-12 gap-6">
+            <!-- Left -->
+            <div class="col-span-12 lg:col-span-8 space-y-6">
+                <div id="auctionDisplay" class="glass rounded-3xl p-8 min-h-[380px] border border-emerald-500/20 relative overflow-hidden flex items-center justify-center">
+                    <p class="text-gray-600 italic">No active auction...</p>
                 </div>
 
-                <!-- Right -->
-                <div class="lg:col-span-4 space-y-6">
-                    <div class="glass rounded-2xl p-4 border border-white/5">
-                        <h3 class="font-bold border-b border-white/5 pb-2 mb-2">Team Budgets</h3>
-                        <div id="budgetList" class="space-y-2"></div>
+                <div id="adminForm" class="hidden glass p-6 rounded-2xl border border-white/5">
+                    <h3 class="font-bold mb-4 text-neon">ADD PLAYER</h3>
+                    <div class="grid grid-cols-4 gap-4">
+                        <input id="pName" type="text" placeholder="Name" class="bg-gray-800 p-2 rounded outline-none">
+                        <input id="pStr" type="number" placeholder="STR" class="bg-gray-800 p-2 rounded outline-none">
+                        <select id="pType" class="bg-gray-800 p-2 rounded outline-none"><option>Show Time</option><option>Epic</option><option>Standard</option></select>
+                        <input id="pBase" type="number" placeholder="Base" class="bg-gray-800 p-2 rounded outline-none">
                     </div>
-                    <button onclick="generatePDF()" class="w-full bg-red-700 py-3 rounded-xl font-bold">EXPORT PDF</button>
-                    <div class="glass rounded-2xl h-[400px] flex flex-col border border-white/5">
-                        <div id="chatBox" class="flex-1 overflow-y-auto p-4 space-y-2"></div>
-                        <div class="p-3 bg-black/20 flex gap-2">
-                            <input id="chatInput" type="text" placeholder="Chat..." class="flex-1 bg-gray-900 p-2 rounded outline-none" onkeypress="if(event.key==='Enter')sendChat()">
-                            <button onclick="sendChat()" class="bg-neon text-black px-4 rounded font-bold">></button>
-                        </div>
+                    <button onclick="addPlayer()" class="w-full mt-4 bg-emerald-600 py-2 rounded font-bold">ADD TO DATABASE</button>
+                </div>
+
+                <div class="glass rounded-2xl overflow-hidden border border-white/5">
+                    <table class="w-full text-left">
+                        <thead class="bg-black/40 text-[10px] uppercase text-gray-400">
+                            <tr><th class="p-4">Name</th><th class="p-4">STR</th><th class="p-4">Status</th><th class="p-4">Base</th><th class="p-4 text-center">Action</th></tr>
+                        </thead>
+                        <tbody id="playerList" class="text-sm"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Right -->
+            <div class="col-span-12 lg:col-span-4 space-y-6">
+                <div class="glass rounded-2xl p-5 border border-white/5">
+                    <h3 class="font-bold text-neon mb-4">TEAM PURSES</h3>
+                    <div id="budgetList" class="space-y-3"></div>
+                </div>
+
+                <div class="glass rounded-2xl h-[450px] flex flex-col border border-white/5">
+                    <div class="p-4 border-b border-white/5 font-bold text-xs uppercase">Live Chat</div>
+                    <div id="chatBox" class="flex-1 overflow-y-auto p-4 space-y-2"></div>
+                    <div class="p-3 bg-black/40 flex gap-2">
+                        <input id="chatInput" type="text" placeholder="Message..." class="flex-1 bg-gray-900 p-2 rounded outline-none text-sm" onkeypress="if(event.key==='Enter')sendChat()">
+                        <button onclick="sendChat()" class="bg-neon text-black px-4 rounded font-bold">SEND</button>
                     </div>
                 </div>
             </div>
@@ -84,49 +85,73 @@
     </div>
 
     <script>
-        const socket = io("https://nexus-go-t7rq.onrender.com/"); // YOUR URL
-        let currentPlayers = [], currentTeams = [], user = JSON.parse(localStorage.getItem('nexus_user'));
+        const socket = io(window.location.origin);
+        let user = JSON.parse(localStorage.getItem('nexus_user'));
+        let currentTimer = 30;
+
+        const ACCESS = {
+            "admin@nexus.com": { name: "Nexus Admin", role: "admin", pass: "admin123" },
+            "avirup@nexus.com": { name: "Team SHAKTI", role: "captain", pass: "avirup123" },
+            "gourav@nexus.com": { name: "Aura Farmer's", role: "captain", pass: "gourav123" },
+            "aviroop@nexus.com": { name: "Archmage", role: "captain", pass: "aviroop123" },
+            "bishal@nexus.com": { name: "Shadow Raze", role: "captain", pass: "bishal123" },
+            "abhisek@nexus.com": { name: "RISING FALCONS", role: "captain", pass: "abhisek123" },
+            "sanju@nexus.com": { name: "Golden Knights FC", role: "captain", pass: "sanju123" }
+        };
 
         function attemptLogin() {
-            const email = document.getElementById('email').value, pass = document.getElementById('password').value;
-            // Simplified Login Check
-            if(pass.includes('123')) { // Use your actual credentials map here
-                user = { name: email.split('@')[0], role: email.includes('admin') ? 'admin' : 'captain' };
+            const e = document.getElementById('email').value.toLowerCase();
+            const p = document.getElementById('password').value;
+            if(ACCESS[e] && ACCESS[e].pass === p) {
+                user = ACCESS[e];
                 localStorage.setItem('nexus_user', JSON.stringify(user));
                 location.reload();
-            }
+            } else alert("Invalid Login");
         }
+        function guestAccess() { user = {name:"Guest", role:"guest"}; startApp(); }
         function logout() { localStorage.removeItem('nexus_user'); location.reload(); }
-        function guestAccess() { user = { name: 'Guest', role: 'guest' }; startApp(); }
         function startApp() {
             if(!user) return;
-            document.getElementById('loginModal').classList.add('hidden');
+            document.getElementById('loginModal').style.display = 'none';
             document.getElementById('dashboard').classList.remove('hidden');
-            if(user.role === 'admin') document.getElementById('adminPlayerForm').classList.remove('hidden');
+            document.getElementById('uName').innerText = user.name;
+            document.getElementById('uRole').innerText = user.role;
+            if(user.role === 'admin') document.getElementById('adminForm').classList.remove('hidden');
         }
 
         socket.on('initialData', (data) => {
-            currentPlayers = data.players; currentTeams = data.teams;
-            renderPlayers(data.players); renderTeams(data.teams); renderAuction(data.state);
+            renderPlayers(data.players);
+            renderTeams(data.teams);
+            renderAuction(data.state);
             data.chats.forEach(addChatMessage);
         });
 
-        socket.on('updatePlayers', p => { currentPlayers = p; renderPlayers(p); });
-        socket.on('updateTeams', t => { currentTeams = t; renderTeams(t); });
+        socket.on('updatePlayers', renderPlayers);
+        socket.on('updateTeams', renderTeams);
         socket.on('updateAuction', renderAuction);
         socket.on('newMessage', addChatMessage);
+        socket.on('timerUpdate', t => {
+            currentTimer = t;
+            const el = document.getElementById('timerDisplay');
+            if(el) {
+                el.innerText = t + "s";
+                el.className = t <= 5 ? "text-6xl font-black timer-critical" : "text-6xl font-black text-white";
+            }
+        });
 
         function renderPlayers(players) {
             document.getElementById('playerList').innerHTML = players.map(p => `
-                <tr class="border-b border-white/5">
-                    <td class="p-4 font-bold">${p.name}</td>
+                <tr class="border-b border-white/5 hover:bg-white/5">
+                    <td class="p-4 font-bold text-white">${p.name}</td>
                     <td class="p-4 text-gray-400">${p.strength}</td>
-                    <td class="p-4"><span class="text-[10px] bg-gray-800 p-1 rounded">${p.cardType}</span></td>
-                    <td class="p-4 ${p.status==='Available'?'text-neon':'text-red-500'}">${p.status}</td>
-                    <td class="p-4">${p.baseValue}L</td>
-                    <td class="p-4">
-                        ${user.role==='admin' && p.status==='Available' ? `<button onclick="socket.emit('startAuction',{playerId:${p.id}, baseValue:${p.baseValue}})" class="bg-neon text-black px-2 py-1 rounded text-xs font-bold">START</button>` : `<span class="text-xs text-gray-500">${p.soldTo || '-'}</span>`}
-                        ${user.role==='admin' ? `<button onclick="socket.emit('deletePlayer', ${p.id})" class="ml-2 text-gray-600 hover:text-red-500">×</button>` : ''}
+                    <td class="p-4 font-bold ${p.status==='Available'?'text-neon':'text-red-500'}">${p.status}</td>
+                    <td class="p-4 text-white">${p.baseValue}L</td>
+                    <td class="p-4 text-center">
+                        <div class="flex justify-center gap-2">
+                        ${user.role === 'admin' && p.status === 'Available' ? `<button onclick="socket.emit('startAuction',{playerId:${p.id}, baseValue:${p.baseValue}})" class="bg-neon text-black px-3 py-1 rounded text-[10px] font-bold">START</button>` : ''}
+                        ${user.role === 'admin' ? `<button onclick="if(confirm('Delete?'))socket.emit('deletePlayer',${p.id})" class="text-gray-500 hover:text-red-500"><i class="fa-solid fa-trash"></i></button>` : ''}
+                        ${p.status === 'Sold' ? `<span class="text-[10px] text-gray-500 italic">${p.soldTo}</span>` : ''}
+                        </div>
                     </td>
                 </tr>
             `).join('');
@@ -134,67 +159,80 @@
 
         function renderTeams(teams) {
             document.getElementById('budgetList').innerHTML = teams.map(t => `
-                <div class="flex justify-between text-sm"><span>${t.name}</span><span class="text-neon font-bold">${t.budget}L</span></div>
+                <div class="flex justify-between items-center p-3 bg-white/5 rounded-xl border border-white/5">
+                    <span class="text-sm font-semibold">${t.name}</span>
+                    <span class="text-neon font-black">${t.budget}L</span>
+                </div>
             `).join('');
         }
 
         function renderAuction(state) {
             const box = document.getElementById('auctionDisplay');
             if(!state || !state.activePlayerId) {
-                box.innerHTML = `<p class="text-gray-500 italic">No Active Auction</p>`;
+                box.innerHTML = `<p class="text-gray-600 italic">Waiting for next player...</p>`;
                 return;
             }
             const p = state.activePlayerId;
+            const isHighest = user.name === state.highestBidder;
+
             box.innerHTML = `
-                <div>
-                    <h2 class="text-4xl font-bold">${p.name}</h2>
-                    <p class="text-neon mb-4">${p.cardType} | ${p.strength} STR</p>
-                    <div class="bg-black/40 p-6 rounded-2xl mb-4">
-                        <p class="text-4xl text-yellow-400 font-bold">${state.currentBid}L</p>
-                        <p class="text-sm text-gray-400">Leading: ${state.highestBidder || 'None'}</p>
+                <div class="text-center w-full">
+                    <div id="timerDisplay" class="text-6xl font-black text-white mb-4">${currentTimer}s</div>
+                    <h2 class="text-5xl font-black text-white uppercase">${p.name}</h2>
+                    <p class="text-neon font-bold tracking-widest mb-6">${p.cardType} | ${p.strength} STR</p>
+                    <div class="flex flex-col md:flex-row justify-center gap-6 mb-8">
+                        <div class="glass p-6 rounded-2xl border border-emerald-500/20">
+                            <p class="text-[10px] text-gray-500 uppercase mb-1">Current Bid</p>
+                            <p class="text-5xl font-black text-yellow-400">${state.currentBid}L</p>
+                        </div>
+                        <div class="text-center md:text-left py-2">
+                            <p class="text-[10px] text-gray-500 uppercase mb-1">Leading Team</p>
+                            <p class="text-2xl font-bold text-white">${state.highestBidder || '---'}</p>
+                        </div>
                     </div>
-                    ${user.role==='captain' ? `<div class="flex gap-2 justify-center">
-                        <button onclick="socket.emit('placeBid',{teamName:'${user.name}', increment:1})" class="bg-neon text-black px-6 py-2 rounded font-bold">+1L</button>
-                        <button onclick="socket.emit('placeBid',{teamName:'${user.name}', increment:5})" class="bg-neon text-black px-6 py-2 rounded font-bold">+5L</button>
-                    </div>` : ''}
-                    ${user.role==='admin' ? `<button onclick="socket.emit('sellPlayer')" class="mt-4 bg-blue-600 px-10 py-2 rounded font-bold">SELL PLAYER</button>` : ''}
+                    ${user.role === 'captain' ? `
+                        <div class="flex gap-3 justify-center">
+                            <button onclick="socket.emit('placeBid',{teamName:'${user.name}', increment:1})" class="bg-emerald-600 text-white px-8 py-3 rounded-xl font-bold ${isHighest?'opacity-50 grayscale':''}" ${isHighest?'disabled':''}>+1L</button>
+                            <button onclick="socket.emit('placeBid',{teamName:'${user.name}', increment:5})" class="bg-neon text-black px-8 py-3 rounded-xl font-bold ${isHighest?'opacity-50 grayscale':''}" ${isHighest?'disabled':''}>+5L</button>
+                            <button onclick="socket.emit('placeBid',{teamName:'${user.name}', increment:10})" class="bg-neon text-black px-8 py-3 rounded-xl font-bold ${isHighest?'opacity-50 grayscale':''}" ${isHighest?'disabled':''}>+10L</button>
+                        </div>
+                    ` : ''}
+                    ${user.role === 'admin' ? `
+                        <div class="flex gap-4 justify-center mt-6">
+                            <button onclick="socket.emit('sellPlayer')" class="bg-blue-600 px-10 py-3 rounded-xl font-bold">SELL PLAYER</button>
+                            <button onclick="socket.emit('cancelAuction')" class="bg-gray-700 px-10 py-3 rounded-xl font-bold">CANCEL</button>
+                        </div>
+                    ` : ''}
                 </div>
             `;
         }
 
         function addPlayer() {
-            socket.emit('addPlayer', {
+            const d = {
                 name: document.getElementById('pName').value,
-                strength: document.getElementById('pStrength').value,
+                strength: parseInt(document.getElementById('pStr').value),
                 cardType: document.getElementById('pType').value,
-                baseValue: document.getElementById('pBase').value
-            });
+                baseValue: parseInt(document.getElementById('pBase').value)
+            };
+            if(!d.name || isNaN(d.strength)) return alert("Fill all fields");
+            socket.emit('addPlayer', d);
+            document.getElementById('pName').value = ''; document.getElementById('pStr').value = '';
         }
 
         function sendChat() {
-            const msg = document.getElementById('chatInput').value;
-            if(!msg) return;
-            socket.emit('sendMessage', { sender: user.name, role: user.role, text: msg });
-            document.getElementById('chatInput').value = '';
+            const input = document.getElementById('chatInput');
+            if(!input.value.trim() || user.role === 'guest') return;
+            socket.emit('sendMessage', { sender: user.name, role: user.role, text: input.value });
+            input.value = '';
         }
 
         function addChatMessage(data) {
+            const box = document.getElementById('chatBox');
             const div = document.createElement('div');
-            div.className = "text-xs p-2 bg-white/5 rounded";
-            div.innerHTML = `<b class="text-neon">${data.sender}:</b> ${data.text}`;
-            document.getElementById('chatBox').appendChild(div);
-            document.getElementById('chatBox').scrollTop = 9999;
-        }
-
-        function generatePDF() {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            doc.text("NEXUS AUCTION REPORT", 10, 10);
-            doc.autoTable({
-                head: [['Name', 'STR', 'Status', 'Price']],
-                body: currentPlayers.filter(p=>p.status==='Sold').map(p=>[p.name, p.strength, p.status, p.soldTo])
-            });
-            doc.save('Nexus_Report.pdf');
+            div.className = "p-2 bg-white/5 rounded-lg border border-white/5 text-xs";
+            div.innerHTML = `<span class="${data.role==='admin'?'text-yellow-400':'text-neon'} font-bold">${data.sender}:</span> <span class="text-gray-300">${data.text}</span>`;
+            box.appendChild(div);
+            box.scrollTop = box.scrollHeight;
         }
 
         if(user) startApp();
